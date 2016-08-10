@@ -5,8 +5,9 @@ Email: tricao@utdallas.edu
 Date: August 2016
 """
 
-print ("this is a piece of shit")
+f = open('/Users/trimcao/Dropbox/Research/2016/split-manufacturing/libraries/FreePDK45/gscl45nm.lef', 'r+')
 
-a = 2
-b = 3
-c = 5
+for line in f:
+    print (line)
+
+f.close()
