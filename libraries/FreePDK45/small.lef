@@ -1,0 +1,61 @@
+MACRO AND2X1
+  CLASS CORE ;
+  ORIGIN 0 0 ;
+  FOREIGN AND2X1 0 0 ;
+  SIZE 1.14 BY 2.47 ;
+  SYMMETRY X Y ;
+  SITE CoreSite ;
+  PIN A
+    DIRECTION INPUT ;
+    USE SIGNAL ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.1475 1.2275 0.2825 1.3625 ;
+    END
+  END A
+  PIN B
+    DIRECTION INPUT ;
+    USE SIGNAL ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.3475 1.2275 0.4825 1.3625 ;
+    END
+  END B
+  PIN Y
+    DIRECTION OUTPUT ;
+    USE SIGNAL ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.9175 0.87 0.9825 2.1075 ;
+    END
+  END Y
+  PIN gnd
+    DIRECTION INOUT ;
+    USE GROUND ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.7075 -0.065 0.7725 1.11 ;
+        RECT 0 -0.065 1.14 0.065 ;
+    END
+  END gnd
+  PIN vdd
+    DIRECTION INOUT ;
+    USE POWER ;
+    SHAPE ABUTMENT ;
+    PORT
+      LAYER metal1 ;
+        RECT 0.1425 1.5575 0.2075 2.535 ;
+        RECT 0.6225 1.5575 0.6875 2.535 ;
+        RECT 0 2.405 1.14 2.535 ;
+    END
+  END vdd
+  OBS
+    LAYER metal1 ;
+      RECT 0.1425 0.59 0.2075 1.145 ;
+      RECT 0.1425 1.08 0.6425 1.145 ;
+      RECT 0.5775 1.08 0.6425 1.4925 ;
+      RECT 0.4375 1.4275 0.7775 1.4925 ;
+      RECT 0.4375 1.4275 0.5025 2.1075 ;
+  END
+END AND2X1
