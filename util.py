@@ -37,9 +37,7 @@ class Statement:
         :return: string representation of Statement objects
         """
         s = ""
-        s += self.type + " " + self.name + "\n"
-        for key in self.info:
-            s += "    " + key + ": " + str(self.info[key]) + "\n"
+        s += self.type + " " + self.name
         return s
 
 
@@ -55,6 +53,22 @@ class Macro(Statement):
         self.name = name
         # other info is stored in this dictionary
         self.info = {}
+
+    def __str__(self):
+        """
+        turn a statement object into string
+        :return: string representation of Statement objects
+        """
+        s = ""
+        s += self.type + " " + self.name + "\n"
+        for key in self.info:
+            if key == "PIN":
+                s += "    " + key + ":\n"
+                for pin in self.info[key]:
+                    s += "    " + str(pin) + "\n"
+            else:
+                s += "    " + key + ": " + str(self.info[key]) + "\n"
+        return s
 
     def parse_next(self, data):
         """
@@ -88,7 +102,6 @@ class Macro(Statement):
             else:
                 self.info["PIN"] = [new_pin]
             return new_pin
-
         elif data[0] == "OBS":
             new_obs = Obs()
             self.info["OBS"] = new_obs
@@ -114,6 +127,12 @@ class Pin(Statement):
         self.type = "PIN"
         self.name = name
         self.info = {}
+
+    def __str__(self):
+        s = ""
+        for layer in self.info["PORT"].info["LAYER"]:
+            s += layer.type + " " + layer.name + "\n"
+        return s
 
     def parse_next(self, data):
         if data[0] == "DIRECTION":
@@ -153,10 +172,13 @@ class Port(Statement):
         elif data[0] == "LAYER":
             name = data[1]
             new_layerdef = LayerDef(data[1])
-            self.info["LAYER"] = new_layerdef
+            if "LAYER" in self.info:
+                self.info["LAYER"].append(new_layerdef)
+            else:
+                self.info["LAYER"] = [new_layerdef]
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
-            self.info["LAYER"].add_rect(data)
+            self.info["LAYER"][-1].add_rect(data)
         return 0
 
 
@@ -172,16 +194,25 @@ class Obs(Statement):
         self.name = ""
         self.info = {}
 
+    def __str__(self):
+        s = ""
+        for layer in self.info["LAYER"]:
+            s += layer.type + " " + layer.name + "\n"
+        return s
+
     def parse_next(self, data):
         if data[0] == "END":
             return 1
         elif data[0] == "LAYER":
             name = data[1]
             new_layerdef = LayerDef(data[1])
-            self.info["LAYER"] = new_layerdef
+            if "LAYER" in self.info:
+                self.info["LAYER"].append(new_layerdef)
+            else:
+                self.info["LAYER"] = [new_layerdef]
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
-            self.info["LAYER"].add_rect(data)
+            self.info["LAYER"][-1].add_rect(data)
         return 0
 
 
