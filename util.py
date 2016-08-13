@@ -14,7 +14,7 @@ class Statement:
     def __init__(self):
         pass
 
-    def parseNext(self, data):
+    def parse_next(self, data):
         """
         Method to add information from a statement from LEF file to the
         Statement object.
@@ -25,8 +25,8 @@ class Statement:
         # right now, the program assumes the syntax of LEF file is correct
         if data[0] == "MACRO":
             name = data[1]
-            newState = Macro(name)
-            return newState
+            new_state = Macro(name)
+            return new_state
         elif data[0] == "END":
             return 1
         return 0
@@ -56,7 +56,7 @@ class Macro(Statement):
         # other info is stored in this dictionary
         self.info = {}
 
-    def parseNext(self, data):
+    def parse_next(self, data):
         """
         Method to add information from a statement from LEF file to a Macro
         object.
@@ -68,9 +68,9 @@ class Macro(Statement):
         if data[0] == "CLASS":
             self.info["CLASS"] = data[1]
         elif data[0] == "ORIGIN":
-            xCor = float(data[1])
-            yCor = float(data[2])
-            self.info["ORIGIN"] = (xCor, yCor)
+            x_cor = float(data[1])
+            y_cor = float(data[2])
+            self.info["ORIGIN"] = (x_cor, y_cor)
         elif data[0] == "FOREIGN":
             self.info["FOREIGN"] = data[1:]
         elif data[0] == "SIZE":
@@ -82,17 +82,17 @@ class Macro(Statement):
         elif data[0] == "SITE":
             self.info["SITE"] = data[1]
         elif data[0] == "PIN":
-            newPin = Pin(data[1])
+            new_pin = Pin(data[1])
             if "PIN" in self.info:
-                self.info["PIN"].append(newPin)
+                self.info["PIN"].append(new_pin)
             else:
-                self.info["PIN"] = [newPin]
-            return newPin
+                self.info["PIN"] = [new_pin]
+            return new_pin
 
         elif data[0] == "OBS":
-            newObs = Obs()
-            self.info["OBS"] = newObs
-            return newObs
+            new_obs = Obs()
+            self.info["OBS"] = new_obs
+            return new_obs
         elif data[0] == "END":
             if data[1] == self.name:
                 return 1
@@ -115,15 +115,15 @@ class Pin(Statement):
         self.name = name
         self.info = {}
 
-    def parseNext(self, data):
+    def parse_next(self, data):
         if data[0] == "DIRECTION":
             self.info["DIRECTION"] = data[1]
         elif data[0] == "USE":
             self.info["DIRECTION"] = data[1]
         elif data[0] == "PORT":
-            newPort = Port()
-            self.info["PORT"] = newPort
-            return newPort
+            new_port = Port()
+            self.info["PORT"] = new_port
+            return new_port
         elif data[0] == "SHAPE":
             self.info["SHAPE"] = data[1]
         elif data[0] == "END":
@@ -147,17 +147,18 @@ class Port(Statement):
         self.name = ""
         self.info = {}
 
-    def parseNext(self, data):
+    def parse_next(self, data):
         if data[0] == "END":
             return 1
         elif data[0] == "LAYER":
             name = data[1]
-            newLayerDef = LayerDef(data[1])
-            self.info["LAYER"] = newLayerDef
+            new_layerdef = LayerDef(data[1])
+            self.info["LAYER"] = new_layerdef
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
-            self.info["LAYER"].addRect(data)
+            self.info["LAYER"].add_rect(data)
         return 0
+
 
 class Obs(Statement):
     """
@@ -171,20 +172,20 @@ class Obs(Statement):
         self.name = ""
         self.info = {}
 
-    def parseNext(self, data):
+    def parse_next(self, data):
         if data[0] == "END":
             return 1
         elif data[0] == "LAYER":
             name = data[1]
-            newLayerDef = LayerDef(data[1])
-            self.info["LAYER"] = newLayerDef
+            new_layerdef = LayerDef(data[1])
+            self.info["LAYER"] = new_layerdef
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
-            self.info["LAYER"].addRect(data)
+            self.info["LAYER"].add_rect(data)
         return 0
 
 
-class LayerDef():
+class LayerDef:
     """
     Class LayerDef represents the Layer definition inside a PORT or OBS
     statement.
@@ -198,7 +199,7 @@ class LayerDef():
         self.name = name
         self.shapes = []
 
-    def addRect(self, data):
+    def add_rect(self, data):
         x0 = data[1]
         y0 = data[2]
         x1 = data[3]
@@ -208,7 +209,7 @@ class LayerDef():
         self.shapes.append(rect)
 
 
-class Rect():
+class Rect:
     """
     Class Rect represents a Rect definition in a LayerDef
     """
