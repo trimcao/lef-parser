@@ -5,10 +5,12 @@ Email: tricao@utdallas.edu
 Date: August 2016
 """
 
+
 class Statement:
     """
     General class for all types of Statements in the LEF file
     """
+
     def __init__(self):
         pass
 
@@ -29,7 +31,7 @@ class Statement:
             return 1
         return 0
 
-    def toString(self):
+    def __str__(self):
         """
         turn a statement object into string
         :return: string representation of Statement objects
@@ -40,10 +42,12 @@ class Statement:
             s += "    " + key + ": " + str(self.info[key]) + "\n"
         return s
 
+
 class Macro(Statement):
     """
     Macro class represents a MACRO (cell) in the LEF file.
     """
+
     def __init__(self, name):
         # initiate the Statement superclass
         Statement.__init__(self)
@@ -67,12 +71,24 @@ class Macro(Statement):
             xCor = float(data[1])
             yCor = float(data[2])
             self.info["ORIGIN"] = (xCor, yCor)
+        elif data[0] == "FOREIGN":
+            self.info["FOREIGN"] = data[1:]
         elif data[0] == "SIZE":
             width = float(data[1])
             height = float(data[3])
             self.info["SIZE"] = (width, height)
+        elif data[0] == "SYMMETRY":
+            self.info["SYMMETRY"] = data[1:]
         elif data[0] == "SITE":
             self.info["SITE"] = data[1]
+        elif data[0] == "PIN":
+            newPin = Pin(data[1])
+            if "PIN" in self.info:
+                self.info["PIN"].append(newPin)
+            else:
+                self.info["PIN"] = [newPin]
+            return newPin
+
         elif data[0] == "OBS":
             newObs = Obs()
             self.info["OBS"] = newObs
@@ -84,14 +100,70 @@ class Macro(Statement):
                 return -1
         return 0
 
-    # eventually I will override the toString() method
-    #def toString(self):
+        # eventually I will override the toString() method
+        # def toString(self):
 
+
+class Pin(Statement):
+    """
+    Class Pin represents a PIN statement in the LEF file.
+    """
+
+    def __init__(self, name):
+        Statement.__init__(self)
+        self.type = "PIN"
+        self.name = name
+        self.info = {}
+
+    def parseNext(self, data):
+        if data[0] == "DIRECTION":
+            self.info["DIRECTION"] = data[1]
+        elif data[0] == "USE":
+            self.info["DIRECTION"] = data[1]
+        elif data[0] == "PORT":
+            newPort = Port()
+            self.info["PORT"] = newPort
+            return newPort
+        elif data[0] == "SHAPE":
+            self.info["SHAPE"] = data[1]
+        elif data[0] == "END":
+            if data[1] == self.name:
+                return 1
+            else:
+                return -1
+        # return 0 when we parse a undefined statement
+        return 0
+
+
+class Port(Statement):
+    """
+    Class Port represents an PORT statement in the LEF file.
+    """
+
+    # Note: PORT statement does not have name
+    def __init__(self):
+        Statement.__init__(self)
+        self.type = "PORT"
+        self.name = ""
+        self.info = {}
+
+    def parseNext(self, data):
+        if data[0] == "END":
+            return 1
+        elif data[0] == "LAYER":
+            name = data[1]
+            newLayerDef = LayerDef(data[1])
+            self.info["LAYER"] = newLayerDef
+        elif data[0] == "RECT":
+            # error if the self.info["LAYER"] does not exist
+            self.info["LAYER"].addRect(data)
+        return 0
 
 class Obs(Statement):
     """
     Class Obs represents an OBS statement in the LEF file.
     """
+
     # Note: OBS statement does not have name
     def __init__(self):
         Statement.__init__(self)
@@ -111,11 +183,13 @@ class Obs(Statement):
             self.info["LAYER"].addRect(data)
         return 0
 
+
 class LayerDef():
     """
     Class LayerDef represents the Layer definition inside a PORT or OBS
     statement.
     """
+
     # NOTE: LayerDef has no END statement
     # I think I still need a LayerDef class, but it will not be a subclass of
     #  Statement. It will be a normal object that stores information.
@@ -133,13 +207,12 @@ class LayerDef():
         rect = Rect(points)
         self.shapes.append(rect)
 
+
 class Rect():
     """
     Class Rect represents a Rect definition in a LayerDef
     """
+
     # Question: Do I really need a Rect class?
     def __init__(self, points):
         self.points = points
-
-
-
