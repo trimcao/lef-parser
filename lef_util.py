@@ -246,3 +246,4 @@ class Rect:
     def __init__(self, points):
         self.type = "RECT"
         self.points = points
+

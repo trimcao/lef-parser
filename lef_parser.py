@@ -4,7 +4,7 @@ Author: Tri Cao
 Email: tricao@utdallas.edu
 Date: August 2016
 """
-from util import *
+from lef_util import *
 import matplotlib.pyplot as plt
 
 """
