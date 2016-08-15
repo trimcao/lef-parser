@@ -113,9 +113,6 @@ class Macro(Statement):
                 return -1
         return 0
 
-        # eventually I will override the toString() method
-        # def toString(self):
-
 
 class Pin(Statement):
     """
@@ -231,10 +228,10 @@ class LayerDef:
         self.shapes = []
 
     def add_rect(self, data):
-        x0 = data[1]
-        y0 = data[2]
-        x1 = data[3]
-        y1 = data[4]
+        x0 = float(data[1])
+        y0 = float(data[2])
+        x1 = float(data[3])
+        y1 = float(data[4])
         points = [(x0, y0), (x1, y1)]
         rect = Rect(points)
         self.shapes.append(rect)
@@ -247,4 +244,5 @@ class Rect:
 
     # Question: Do I really need a Rect class?
     def __init__(self, points):
+        self.type = "RECT"
         self.points = points

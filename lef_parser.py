@@ -5,11 +5,13 @@ Email: tricao@utdallas.edu
 Date: August 2016
 """
 from util import *
+import matplotlib.pyplot as plt
 
 """
 Note:
 """
 
+SCALE = 2000;
 
 def str_to_list(s):
     """
@@ -66,9 +68,81 @@ for line in f:
 f.close()
 
 # print parsed statements
-# be careful: this printing might include both parent and children objects,
-# probably I need to separate them
-# print (statements)
+#for each in statements:
+#    if each.type == "MACRO":
+#        print(each)
+
+def scalePts(pts):
+    """
+    scale a list of points
+    :return:
+    """
+    scaled = []
+    for pt in pts:
+        scaled_pt = (SCALE*pt[0], SCALE*pt[1])
+        scaled.append(scaled_pt)
+    return scaled
+
+def rect_to_polygon(rect_pts):
+    """
+    Convert the rect point list into polygon point list (for easy plotting)
+    :param pts:
+    :return:
+    """
+    poly_pt = []
+    pt1 = list(rect_pts[0])
+    poly_pt.append(pt1)
+    pt2 = [rect_pts[0][0], rect_pts[1][1]]
+    poly_pt.append(pt2)
+    pt3 = list(rect_pts[1])
+    poly_pt.append(pt3)
+    pt4 = [rect_pts[1][0], rect_pts[0][1]]
+    poly_pt.append(pt4)
+    return poly_pt
+
+
+def draw_obs(obs):
+    """
+    Helper method to draw a OBS object
+    :return: void
+    """
+    # process each Layer
+    for layer in obs.info["LAYER"]:
+        for shape in layer.shapes:
+            scaled_pts = scalePts(shape.points)
+            if (shape.type == "RECT"):
+                scaled_pts = rect_to_polygon(scaled_pts)
+            draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
+                                edgecolor='blue')
+            plt.gca().add_patch(draw_shape)
+
+
+def draw_port(port):
+    """
+    Helper method to draw a PORT object
+    :return: void
+    """
+    # process each Layer
+    for layer in port.info["LAYER"]:
+        for shape in layer.shapes:
+            scaled_pts = scalePts(shape.points)
+            if (shape.type == "RECT"):
+                scaled_pts = rect_to_polygon(scaled_pts)
+            draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
+                                     color='red', edgecolor='red')
+            plt.gca().add_patch(draw_shape)
+
+
+# only draw OBS and PORT
 for each in statements:
-    if each.type == "MACRO":
-        print(each)
+    if each.type == "OBS":
+        draw_obs(each)
+    elif each.type == "PORT":
+        draw_port(each)
+
+
+# start drawing
+plt.axes()
+plt.axis('scaled')
+plt.show()
+
