@@ -43,12 +43,14 @@ for line in f:
     for each_part in parts:
         info = split_space(each_part)
         if len(info) > 0:
+            print (info)
             if info[0] == "PINS":
                 new_pins = Pins(int(info[1]))
                 stack.append(new_pins)
                 print (new_pins.type)
             elif info[0] == "END":
                 stack.pop()
+                print ("finish")
             else:
                 if len(stack) > 0:
                     latest_obj = stack[-1]

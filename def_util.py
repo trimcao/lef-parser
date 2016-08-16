@@ -15,8 +15,15 @@ class Pins:
         self.num_pins = num_pins
         self.pins = []
 
-    def parse_next(self, data):
-        print ("Let me parse")
+    def parse_next(self, info):
+        if (info[0] == "-"):
+            # create a new pin
+            current_pin = Pin([info[1]])
+            self.pins.append(current_pin)
+            print ("new")
+        else:
+            current_pin = self.getLastPin()
+            print ("last")
 
     def getLastPin(self):
         return self.pins[-1]
