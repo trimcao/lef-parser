@@ -34,6 +34,9 @@ def split_space(line: object) -> object:
 # use a stack (just like LEF parser)
 stack = []
 
+# use a components list to store different sections in the DEF file
+components = []
+
 # open the file and start reading
 path = "./libraries/DEF/pins.def"
 f = open(path, "r+")
@@ -43,15 +46,20 @@ for line in f:
     for each_part in parts:
         info = split_space(each_part)
         if len(info) > 0:
-            print (info)
+            #print (info)
             if info[0] == "PINS":
                 new_pins = Pins(int(info[1]))
                 stack.append(new_pins)
-                print (new_pins.type)
+                #print (new_pins.type)
             elif info[0] == "END":
-                stack.pop()
-                print ("finish")
+                components.append(stack.pop())
+                #print ("finish")
             else:
                 if len(stack) > 0:
                     latest_obj = stack[-1]
                     latest_obj.parse_next(info)
+
+# print out results
+#pins = components.pop()
+#for pin in pins.pins:
+#    print (pin)
