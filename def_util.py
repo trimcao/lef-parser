@@ -10,12 +10,16 @@ class Pins:
     Class Pins represents the PINS section in DEF file. It contains
     individual Pin objects.
     """
-    def __init__(self):
+    def __init__(self, num_pins):
         self.type = "PINS_DEF"
-        self.pins[]
+        self.num_pins = num_pins
+        self.pins = []
 
-    def parseNext(self, data):
-        pass
+    def parse_next(self, data):
+        print ("Let me parse")
+
+    def getLastPin(self):
+        return self.pins[-1]
 
 class Pin:
     """
