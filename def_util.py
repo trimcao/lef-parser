@@ -4,7 +4,7 @@ Author: Tri Minh Cao
 Email: tricao@utdallas.edu
 Date: August 2016
 """
-
+from util import *
 
 class Pins:
     """
@@ -16,6 +16,7 @@ class Pins:
         self.type = "PINS_DEF"
         self.num_pins = num_pins
         self.pins = []
+        pin_dict = {}
 
     def parse_next(self, info):
         if info[0] == "-":
@@ -23,6 +24,7 @@ class Pins:
             # print (info[1])
             current_pin = Pin(info[1])
             self.pins.append(current_pin)
+            self.pin_dict[info[1]] = current_pin
             # print ("new")
         else:
             current_pin = self.get_last_pin()
@@ -101,12 +103,14 @@ class Components:
         self.type = "COMPONENTS_DEF"
         self.num_comps = num_comps
         self.comps = []
+        self.comp_dict = {}
 
     def parse_next(self, info):
         if info[0] == "-":
             new_comp = Component(info[1])
             new_comp.macro = info[2]
             self.comps.append(new_comp)
+            self.comp_dict[info[1]] = new_comp
         else:
             current_comp = self.get_last_comp()
             # parse the next info
@@ -148,15 +152,18 @@ class Nets:
         self.type = "NETS_DEF"
         self.num_nets = num_nets
         self.nets = []
+        self.net_dict = {}
 
     def parse_next(self, info):
         # remember to check for "(" before using split_parentheses
         # if we see "(", then it means new component or new pin
         # another method is to check the type of the object, if it is a list
         # then we know it comes from parentheses
+        info = split_parentheses(info)
         if info[0] == "-":
             new_net = Net(info[1])
             self.nets.append(new_net)
+            self.net_dict[info[1]] = new_net
         else:
             current_net = self.get_last_net()
             # parse next info
@@ -204,6 +211,18 @@ class Net:
         self.comp_pin = []
         self.routed = []
 
+    def __str__(self):
+        s = ""
+        s += self.type + ": " + self.name + "\n"
+        s += "    " + "Comp/Pin: "
+        for comp in self.comp_pin:
+            s += " " + str(comp)
+        s += "\n"
+        s += "    " + "Routed: " + "\n"
+        for route in self.routed:
+            s += "    " + "    " + str(route) + "\n"
+        return s
+
 class Routed:
     """
     Represents a ROUTED definition inside a NET.
@@ -215,6 +234,16 @@ class Routed:
         self.points = []
         self.end_via = None
 
+    def __str__(self):
+        s = ""
+        s += self.layer
+        for pt in self.points:
+            s += " " + str(pt)
+        if (self.end_via != None):
+            s += " " + self.end_via
+        return s
+
     def get_last_pt(self):
         return self.points[-1]
+
 

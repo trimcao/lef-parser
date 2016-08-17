@@ -13,6 +13,8 @@ stack = []
 # store the statements info in a list
 sections = []
 
+# dictionaries for mapping
+
 def split_plus(line):
     """
     Split a line according to the + (plus) sign.
@@ -68,3 +70,7 @@ for line in f:
 #    print (comp)
 #for pin in pins.pins:
 #    print (pin)
+
+nets = sections[0]
+for net in nets.nets:
+    print (net)

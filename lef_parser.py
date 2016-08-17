@@ -14,6 +14,9 @@ Note:
 
 SCALE = 2000;
 
+# dictionaries to map the definitions
+macro_dict = {}
+
 # can make the stack to be an object if needed
 stack = []
 
@@ -22,7 +25,7 @@ statements = []
 
 # Now try using my data structure to parse
 # open the file and start reading
-path = "./libraries/FreePDK45/AND2_OR2.lef"
+path = "./libraries/FreePDK45/FreePDK45nm.lef"
 # path = "./libraries/FreePDK45/FreePDK45nm.lef"
 f = open(path, "r+")
 # the program will run until the end of file f
@@ -46,18 +49,17 @@ for line in f:
             # remove the done statement from stack, and add it to the statements
             # list
             if len(stack) != 0:
-                statements.append(stack.pop())
+                # add the done statement to a dictionary
+                done_obj = stack.pop()
+                if isinstance(done_obj, Macro):
+                    macro_dict[done_obj.name] = done_obj
+                statements.append(done_obj)
         elif nextState == -1:
             pass
         else:
             stack.append(nextState)
             # print (nextState)
 f.close()
-
-# print parsed statements
-#for each in statements:
-#    if each.type == "MACRO":
-#        print(each)
 
 def draw_obs(obs, color):
     """
@@ -71,7 +73,7 @@ def draw_obs(obs, color):
             if (shape.type == "RECT"):
                 scaled_pts = rect_to_polygon(scaled_pts)
             draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
-                                color=color, edgecolor=color)
+                                color=color)
             plt.gca().add_patch(draw_shape)
 
 
@@ -87,7 +89,7 @@ def draw_port(port, color):
             if (shape.type == "RECT"):
                 scaled_pts = rect_to_polygon(scaled_pts)
             draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
-                                     color=color, edgecolor=color)
+                                     color=color)
             plt.gca().add_patch(draw_shape)
 
 
@@ -119,27 +121,35 @@ def draw_macro(macro):
     for pin in macro.info["PIN"]:
         draw_pin(pin)
 
-# only draw OBS and PIN
-#for each in statements:
-#    if each.type == "OBS":
-#        draw_obs(each, "blue")
-#    elif each.type == "PIN":
-#        draw_pin(each)
+to_draw = []
+to_draw.append(input("Enter the first macro: "))
+to_draw.append(input("Enter the second macro: "))
+#to_draw = ["AND2X1", "AND2X2"]
+
 
 plt.figure(figsize=(12, 9), dpi=80)
 plt.axes()
 
 num_plot = 1
-for each in statements:
-    if each.type == "MACRO":
-        sub = plt.subplot(1, 2, num_plot)
-        # need to add title
-        sub.set_title(each.name)
-        draw_macro(each)
-        num_plot += 1
-        # scale the axis of the subplot
-        plt.axis('scaled')
+for macro_name in to_draw:
+    # check user's input
+    if macro_name not in macro_dict:
+        print ("Error: This macro does not exist in the parsed library.")
+        quit()
+    macro = macro_dict[macro_name]
+    sub = plt.subplot(1, 2, num_plot)
+    # need to add title
+    sub.set_title(macro.name)
+    draw_macro(macro)
+    num_plot += 1
+    # scale the axis of the subplot
+    plt.axis('scaled')
 
 
 # start drawing
+print ("Start drawing...")
 plt.show()
+
+#print (macro_dict)
+#print (len(macro_dict))
+
