@@ -47,4 +47,34 @@ def rect_to_polygon(rect_pts):
     return poly_pt
 
 
+def split_parentheses(info):
+    """
+    make all strings inside parentheses a list
+    :param s: a list of strings (called info)
+    :return: info list without parentheses
+    """
+    # if we see the "(" sign, then we start adding stuff to a temp list
+    # in case of ")" sign, we append the temp list to the new_info list
+    # otherwise, just add the string to the new_info list
+    new_info = []
+    make_list = False
+    current_list = []
+    for idx in range(len(info)):
+        if info[idx] == "(":
+            make_list = True
+        elif info[idx] == ")":
+            make_list = False
+            new_info.append(current_list)
+            current_list = []
+        else:
+            if make_list:
+                current_list.append(info[idx])
+            else:
+                new_info.append(info[idx])
+    return new_info
+
+
+
+
+
 

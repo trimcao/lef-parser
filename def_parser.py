@@ -6,12 +6,12 @@ Date: August 2016
 """
 
 from def_util import *
-
+from util import *
 # can make the stack to be an object if needed
 stack = []
 
 # store the statements info in a list
-statements = []
+sections = []
 
 def split_plus(line):
     """
@@ -31,14 +31,8 @@ def split_space(line: object) -> object:
     new_line = line.split()
     return new_line
 
-# use a stack (just like LEF parser)
-stack = []
-
-# use a components list to store different sections in the DEF file
-components = []
-
 # open the file and start reading
-path = "./libraries/DEF/pins.def"
+path = "./libraries/DEF/nets.def"
 f = open(path, "r+")
 # the program will run until the end of file f
 for line in f:
@@ -47,12 +41,20 @@ for line in f:
         info = split_space(each_part)
         if len(info) > 0:
             #print (info)
+            #print (split_parentheses(info))
+            #print ()
             if info[0] == "PINS":
                 new_pins = Pins(int(info[1]))
                 stack.append(new_pins)
                 #print (new_pins.type)
+            elif info[0] == "COMPONENTS":
+                new_comps = Components(int(info[1]))
+                stack.append(new_comps)
+            elif info[0] == "NETS":
+                new_nets = Nets(int(info[1]))
+                stack.append(new_nets)
             elif info[0] == "END":
-                components.append(stack.pop())
+                sections.append(stack.pop())
                 #print ("finish")
             else:
                 if len(stack) > 0:
@@ -60,6 +62,9 @@ for line in f:
                     latest_obj.parse_next(info)
 
 # print out results
-#pins = components.pop()
+#comps = sections[0]
+#pins = sections[1]
+#for comp in comps.comps:
+#    print (comp)
 #for pin in pins.pins:
 #    print (pin)
