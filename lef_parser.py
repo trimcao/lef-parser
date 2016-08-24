@@ -8,25 +8,24 @@ from lef_util import *
 from util import *
 import matplotlib.pyplot as plt
 
-"""
-Note:
-"""
-
 SCALE = 2000;
 
+class LefParser:
+    """
+    LefParser object will parse the LEF file and store information about the
+    cell library.
+    """
+    def __init__(self, lef_file):
 # dictionaries to map the definitions
 macro_dict = {}
-
 # can make the stack to be an object if needed
 stack = []
-
 # store the statements info in a list
 statements = []
 
 # Now try using my data structure to parse
 # open the file and start reading
 path = "./libraries/FreePDK45/FreePDK45nm.lef"
-# path = "./libraries/FreePDK45/FreePDK45nm.lef"
 f = open(path, "r+")
 # the program will run until the end of file f
 for line in f:
@@ -61,66 +60,7 @@ for line in f:
             # print (nextState)
 f.close()
 
-def draw_obs(obs, color):
-    """
-    Helper method to draw a OBS object
-    :return: void
-    """
-    # process each Layer
-    for layer in obs.info["LAYER"]:
-        for shape in layer.shapes:
-            scaled_pts = scalePts(shape.points, SCALE)
-            if (shape.type == "RECT"):
-                scaled_pts = rect_to_polygon(scaled_pts)
-            draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
-                                color=color)
-            plt.gca().add_patch(draw_shape)
 
-
-def draw_port(port, color):
-    """
-    Helper method to draw a PORT object
-    :return: void
-    """
-    # process each Layer
-    for layer in port.info["LAYER"]:
-        for shape in layer.shapes:
-            scaled_pts = scalePts(shape.points, SCALE)
-            if (shape.type == "RECT"):
-                scaled_pts = rect_to_polygon(scaled_pts)
-            draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
-                                     color=color)
-            plt.gca().add_patch(draw_shape)
-
-
-def draw_pin(pin):
-    """
-    function to draw a PIN object
-    :param pin: a pin object
-    :return: void
-    """
-    # chosen color of the PIN in the sketch
-
-    color = "blue"
-    pin_name = pin.name.lower()
-    if pin_name == "vdd" or pin_name == "gnd":
-        color = "blue"
-    else:
-        color = "red"
-    draw_port(pin.info["PORT"], color)
-
-def draw_macro(macro):
-    """
-    function to draw a Macro (cell) object
-    :param macro: a Macro object
-    :return: void
-    """
-    # draw OBS (if it exists)
-    if "OBS" in macro.info:
-        draw_obs(macro.info["OBS"], "blue")
-    # draw each PIN
-    for pin in macro.info["PIN"]:
-        draw_pin(pin)
 
 to_draw = []
 to_draw.append(input("Enter the first macro: "))
@@ -153,4 +93,3 @@ plt.show()
 
 #print (macro_dict)
 #print (len(macro_dict))
-
