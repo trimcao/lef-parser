@@ -115,8 +115,9 @@ def draw_macro(macro):
     :param macro: a Macro object
     :return: void
     """
-    # draw OBS
-    draw_obs(macro.info["OBS"], "blue")
+    # draw OBS (if it exists)
+    if "OBS" in macro.info:
+        draw_obs(macro.info["OBS"], "blue")
     # draw each PIN
     for pin in macro.info["PIN"]:
         draw_pin(pin)

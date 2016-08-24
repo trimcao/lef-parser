@@ -34,7 +34,7 @@ def split_space(line: object) -> object:
     return new_line
 
 # open the file and start reading
-path = "./libraries/DEF/nets.def"
+path = "./libraries/DEF/pins.def"
 f = open(path, "r+")
 # the program will run until the end of file f
 for line in f:
@@ -66,11 +66,17 @@ for line in f:
 # print out results
 #comps = sections[0]
 #pins = sections[1]
+#nets = sections[2]
+#print (comps.comp_dict["U132"])
+#print (pins.pin_dict["N30"])
+#print (nets.net_dict["N146"])
 #for comp in comps.comps:
 #    print (comp)
 #for pin in pins.pins:
 #    print (pin)
 
-nets = sections[0]
-for net in nets.nets:
-    print (net)
+#nets = sections[0]
+#for net in nets.nets:
+#    print (net)
+
+

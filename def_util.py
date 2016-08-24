@@ -16,7 +16,7 @@ class Pins:
         self.type = "PINS_DEF"
         self.num_pins = num_pins
         self.pins = []
-        pin_dict = {}
+        self.pin_dict = {}
 
     def parse_next(self, info):
         if info[0] == "-":
@@ -161,9 +161,10 @@ class Nets:
         # then we know it comes from parentheses
         info = split_parentheses(info)
         if info[0] == "-":
-            new_net = Net(info[1])
+            net_name = info[1].upper()
+            new_net = Net(net_name)
             self.nets.append(new_net)
-            self.net_dict[info[1]] = new_net
+            self.net_dict[net_name] = new_net
         else:
             current_net = self.get_last_net()
             # parse next info
