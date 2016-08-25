@@ -42,11 +42,19 @@ class Pins:
                 new_layer.points.append([int(info[7]), int(info[8])])
                 current_pin.layer = new_layer
             elif info[0] == "PLACED":
-                current_pin.placed = [info[2], info[3]]
+                current_pin.placed = [int(info[2]), int(info[3])]
                 current_pin.orient = info[5]
 
     def get_last_pin(self):
         return self.pins[-1]
+
+    def to_def_format(self):
+        s = ""
+        s += "PINS" + " " + str(self.num_pins) + " ;\n"
+        for each_pin in self.pins:
+            s += each_pin.to_def_format() + "\n"
+        s += "END PINS"
+        return s
 
 
 class Pin:
@@ -75,6 +83,19 @@ class Pin:
         s += "    " + "Placed: " + str(self.placed) + " " + self.orient + "\n"
         return s
 
+    def to_def_format(self):
+        #- N1 + NET N1 + DIRECTION INPUT + USE SIGNAL
+        #  + LAYER metal2 ( -70 0 ) ( 70 140 )
+        #  + PLACED ( 27930 0 ) N ;
+        s = ""
+        s += "- " + self.name + " + NET " + self.net
+        s += " + DIRECTION " + self.direction + " + USE " + self.use + "\n"
+        s += "  + " + self.layer.to_def_format() + "\n"
+        s += "  + " + "PLACED " + "( " + str(self.placed[0]) + " "
+        s += str(self.placed[1]) + " ) " + self.orient + "\n"
+        s += " ;"
+        return s
+
 
 class Layer:
     """
@@ -91,6 +112,13 @@ class Layer:
         s += self.name
         for pt in self.points:
             s += " " + str(pt)
+        return s
+
+    def to_def_format(self):
+        s = ""
+        s += "LAYER" + " " + self.name
+        for pt in self.points:
+            s += " ( " + str(pt[0]) + " " + str(pt[1]) + " )"
         return s
 
 
@@ -121,6 +149,14 @@ class Components:
     def get_last_comp(self):
         return self.comps[-1]
 
+    def to_def_format(self):
+        s = ""
+        s += "COMPONENTS" + " " + str(self.num_comps) + " ;\n"
+        for each_comp in self.comps:
+            s += each_comp.to_def_format() + "\n"
+        s += "END COMPONENTS"
+        return s
+
 
 class Component:
     """
@@ -143,8 +179,6 @@ class Component:
         return s
 
     def to_def_format(self):
-        #- U337 NAND2_X1 + PLACED ( 36860 22400 ) N
-        #;
         s = ""
         s += "- " + self.name + " " + self.macro + " + " + "PLACED"
         s += " ( " + str(self.placed[0]) + " " + str(self.placed[1]) + " ) "
@@ -231,6 +265,10 @@ class Net:
         s += "    " + "Routed: " + "\n"
         for route in self.routed:
             s += "    " + "    " + str(route) + "\n"
+        return s
+
+    def to_def_format(self):
+        s = ""
         return s
 
 class Routed:
@@ -323,4 +361,17 @@ class Property:
     Represents a PROPERTYDEFINITIONS in the DEF file.
     """
     def __init__(self):
-        pass
+        self.type = "PROPERTY_DEF"
+        self.texts = []
+
+    def parse_next(self, info):
+        new_line = " ".join(info)
+        self.texts.append(new_line)
+
+    def to_def_format(self):
+        s = ""
+        s += "PROPERTYDEFINITIONS\n"
+        for each_line in self.texts:
+            s += "    " + each_line + "\n"
+        s += "END PROPERTYDEFINITIONS\n"
+        return s

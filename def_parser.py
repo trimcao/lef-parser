@@ -29,6 +29,7 @@ class DefParser:
         self.busbitchars = None
         self.design_name = None
         self.units = None
+        self.scale = None
 
     def parse(self):
         """
@@ -51,19 +52,26 @@ class DefParser:
                         self.stack.append(new_pins)
                         # print (new_pins.type)
                     elif info[0] == "VERSION":
-                        pass
+                        self.version = info[1]
                     elif info[0] == "DIVIDERCHAR":
-                        pass
+                        self.dividerchar = info[1]
                     elif info[0] == "BUSBITCHARS":
-                        pass
-                    elif info[0] == "DESIGN":
-                        pass
+                        self.busbitchars = info[1]
+                    elif info[0] == "DESIGN" and len(info) <= 2:
+                        # differentiate with the DESIGN statement inside
+                        # PROPERTYDEFINITIONS section.
+                        self.design_name = info[1]
                     elif info[0] == "UNITS":
-                        pass
+                        self.units = info[2]
+                        self.scale = info[3]
                     elif info[0] == "PROPERTYDEFINITIONS":
-                        pass
+                        new_property = Property()
+                        self.stack.append(new_property)
                     elif info[0] == "DIEAREA":
-                        pass
+                        info = split_parentheses(info)
+                        pt1 = (int(info[1][0]), int(info[1][1]))
+                        pt2 = (int(info[2][0]), int(info[2][1]))
+                        self.diearea = [pt1, pt2]
                     elif info[0] == "COMPONENTS":
                         new_comps = Components(int(info[1]))
                         self.stack.append(new_comps)
@@ -113,7 +121,7 @@ class DefParser:
         """
         f = open(new_def, mode="w+")
         # first, write the COMPONENTS section
-        comps = self.sections[0]
+        comps = self.sections[1]
         # check if parsing has been done
         if comps.type != "COMPONENTS_DEF":
             return
@@ -152,19 +160,16 @@ if __name__ == '__main__':
     #    print(gcell.to_def_format())
 
     # try printing Row
-    for row in def_parser.rows:
-        print (row.to_def_format())
+    #for row in def_parser.rows:
+    #    print (row.to_def_format())
 
-    ## print out results
-    # comps = def_parser.sections[0]
-    # pins = def_parser.sections[1]
-    # nets = def_parser.sections[2]
-    ##print (comps.comp_dict["U132"])
-    ##print (pins.pin_dict["N30"])
-    ##print (nets.net_dict["N146"])
-    # for comp in comps.comps:
-    #    print (comp)
-    # for pin in pins.pins:
-    #    print (pin)
-    # for net in nets.nets:
-    #    print (net)
+    # try printing PROPERTYDEFINITIONS
+    #props = def_parser.sections[0]
+    #print (props.to_def_format())
+
+    # print out results
+    #comps = def_parser.sections[1]
+    #print (comps.to_def_format())
+    pins = def_parser.sections[2]
+    print (pins.to_def_format())
+    #nets = def_parser.sections[3]
