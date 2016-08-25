@@ -142,6 +142,15 @@ class Component:
         s += "    " + "Placed: " + str(self.placed) + " " + self.orient + "\n"
         return s
 
+    def to_def_format(self):
+        #- U337 NAND2_X1 + PLACED ( 36860 22400 ) N
+        #;
+        s = ""
+        s += "- " + self.name + " " + self.macro + " + " + "PLACED"
+        s += " ( " + str(self.placed[0]) + " " + str(self.placed[1]) + " ) "
+        s += self.orient + "\n ;"
+        return s
+
 
 class Nets:
     """
