@@ -281,17 +281,42 @@ class GCellGrid:
     """
     Represents a GCELLGRID definition in the DEF file.
     """
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.type = "GCELLGRID_DEF"
+        self.name = name
+        self.pos = None
+        self.do = None
+        self.step = None
 
+    def to_def_format(self):
+        s = ""
+        s += "GCELLGRID" + " " + self.name + " " + str(self.pos) + " "
+        s += "DO" + " " + str(self.do) + " " + "STEP" + " " + str(self.step)
+        s += " ;"
+        return s
 
 class Row:
     """
     Represents a ROW definition in the DEF file.
     """
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.type = "ROW_DEF"
+        self.name = name
+        self.site = None
+        self.pos = None
+        self.orient = None
+        self.do = None
+        self.by = None
+        self.step = None
 
+    def to_def_format(self):
+        s = ""
+        s += "ROW" + " " + self.name + " " + self.site + " "
+        s += str(self.pos[0]) + " " + str(self.pos[1]) + " " + self.orient + " "
+        s += "DO" + " " + str(self.do) + " " + "BY" + " " + str(self.by) + " "
+        s += "STEP" + " " + str(self.step[0]) + " " + str(self.step[1])
+        s += " ;"
+        return s
 
 class Property:
     """

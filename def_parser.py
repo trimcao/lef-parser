@@ -21,6 +21,14 @@ class DefParser:
         # store the statements info in a list
         self.sections = []
         self.tracks = []
+        self.gcellgrids = []
+        self.rows = []
+        self.diearea = None
+        self.version = None
+        self.dividerchar = None
+        self.busbitchars = None
+        self.design_name = None
+        self.units = None
 
     def parse(self):
         """
@@ -37,13 +45,25 @@ class DefParser:
                 # split each sub-string by space
                 info = split_space(each_part)
                 if len(info) > 0:
-                    #print (info)
-                    # print (split_parentheses(info))
-                    # print ()
+                    #print info
                     if info[0] == "PINS":
                         new_pins = Pins(int(info[1]))
                         self.stack.append(new_pins)
                         # print (new_pins.type)
+                    elif info[0] == "VERSION":
+                        pass
+                    elif info[0] == "DIVIDERCHAR":
+                        pass
+                    elif info[0] == "BUSBITCHARS":
+                        pass
+                    elif info[0] == "DESIGN":
+                        pass
+                    elif info[0] == "UNITS":
+                        pass
+                    elif info[0] == "PROPERTYDEFINITIONS":
+                        pass
+                    elif info[0] == "DIEAREA":
+                        pass
                     elif info[0] == "COMPONENTS":
                         new_comps = Components(int(info[1]))
                         self.stack.append(new_comps)
@@ -57,6 +77,21 @@ class DefParser:
                         new_tracks.step = int(info[6])
                         new_tracks.layer = info[8]
                         self.tracks.append(new_tracks)
+                    elif info[0] == "GCELLGRID":
+                        new_gcellgrid = GCellGrid(info[1])
+                        new_gcellgrid.pos = int(info[2])
+                        new_gcellgrid.do = int(info[4])
+                        new_gcellgrid.step = int(info[6])
+                        self.gcellgrids.append(new_gcellgrid)
+                    elif info[0] == "ROW":
+                        new_row = Row(info[1])
+                        new_row.site = info[2]
+                        new_row.pos = (int(info[3]), int(info[4]))
+                        new_row.orient = info[5]
+                        new_row.do = int(info[7])
+                        new_row.by = int(info[9])
+                        new_row.step = (int(info[11]), int(info[12]))
+                        self.rows.append(new_row)
                     elif info[0] == "END":
                         if len(self.stack) > 0:
                             self.sections.append(self.stack.pop())
@@ -109,8 +144,16 @@ if __name__ == '__main__':
     #def_parser.write_def(write_path)
 
     # try printing track
-    for track in def_parser.tracks:
-        print (track.to_def_format())
+    #for track in def_parser.tracks:
+    #    print (track.to_def_format())
+
+    # try printing GCellGrid
+    #for gcell in def_parser.gcellgrids:
+    #    print(gcell.to_def_format())
+
+    # try printing Row
+    for row in def_parser.rows:
+        print (row.to_def_format())
 
     ## print out results
     # comps = def_parser.sections[0]
