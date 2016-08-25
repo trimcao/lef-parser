@@ -5,6 +5,9 @@ Email: tricao@utdallas.edu
 Date: August 2016
 """
 
+SCALE = 2000
+import matplotlib.pyplot as plt
+
 def str_to_list(s):
     """
     Function to turn a string separated by space into list of words

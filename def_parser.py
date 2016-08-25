@@ -56,6 +56,7 @@ class DefParser:
         f.close()
 
 
+# Main Class
 if __name__ == '__main__':
     path = "./libraries/DEF/pins.def"
     def_parser = DefParser(path)
