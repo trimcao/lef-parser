@@ -129,18 +129,6 @@ class DefParser:
         self.write_components(f, comps)
         f.close()
 
-    def write_components(self, current_file, comps):
-        """
-        Method to write COMPONENTS section of the DEF.
-        :param comps: Components object
-        :return: void
-        """
-        current_file.write("COMPONENTS" + " " + str(comps.num_comps) + " ;\n")
-        for each_comp in comps.comps:
-            current_file.write(each_comp.to_def_format())
-            current_file.write("\n")
-        current_file.write("END COMPONENTS")
-
 
 # Main Class
 if __name__ == '__main__':
@@ -170,6 +158,9 @@ if __name__ == '__main__':
     # print out results
     #comps = def_parser.sections[1]
     #print (comps.to_def_format())
-    pins = def_parser.sections[2]
-    print (pins.to_def_format())
+    #pins = def_parser.sections[2]
+    #print (pins.to_def_format())
     #nets = def_parser.sections[3]
+    #print (nets.to_def_format())
+    #for net in nets.nets:
+    #    print (net.to_def_format())

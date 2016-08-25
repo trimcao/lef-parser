@@ -204,7 +204,7 @@ class Nets:
         # then we know it comes from parentheses
         info = split_parentheses(info)
         if info[0] == "-":
-            net_name = info[1].upper()
+            net_name = info[1]
             new_net = Net(net_name)
             self.nets.append(new_net)
             self.net_dict[net_name] = new_net
@@ -243,6 +243,14 @@ class Nets:
     def get_last_net(self):
         return self.nets[-1]
 
+    def to_def_format(self):
+        s = ""
+        s += "NETS" + " " + str(self.num_nets) + " ;\n"
+        for each_net in self.nets:
+            s += each_net.to_def_format() + "\n"
+        s += "END NETS"
+        return s
+
 
 class Net:
     """
@@ -269,6 +277,14 @@ class Net:
 
     def to_def_format(self):
         s = ""
+        s += "- " + self.name + "\n"
+        s += " "
+        for each_comp in self.comp_pin:
+            s += " ( " + " ".join(each_comp) + " )"
+        s += "\n  + ROUTED " + self.routed[0].to_def_format() + "\n"
+        for i in range(1, len(self.routed)):
+            s += "    " + "NEW " + self.routed[i].to_def_format() + "\n"
+        s += " ;"
         return s
 
 class Routed:
@@ -287,12 +303,24 @@ class Routed:
         s += self.layer
         for pt in self.points:
             s += " " + str(pt)
-        if (self.end_via != None):
+        if self.end_via != None:
             s += " " + self.end_via
         return s
 
     def get_last_pt(self):
         return self.points[-1]
+
+    def to_def_format(self):
+        s = ""
+        s += self.layer
+        for pt in self.points:
+            s += " ("
+            for coor in pt:
+                s += " " + str(coor)
+            s += " )"
+        if self.end_via != None:
+            s += " " + self.end_via
+        return s
 
 
 class Tracks:
