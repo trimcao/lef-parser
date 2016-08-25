@@ -20,6 +20,7 @@ class DefParser:
         self.stack = []
         # store the statements info in a list
         self.sections = []
+        self.tracks = []
 
     def parse(self):
         """
@@ -30,8 +31,10 @@ class DefParser:
         f = open(self.file_path, "r+")
         # the program will run until the end of file f
         for line in f:
+            # split the string by the plus '+' sign
             parts = split_plus(line)
             for each_part in parts:
+                # split each sub-string by space
                 info = split_space(each_part)
                 if len(info) > 0:
                     #print (info)
@@ -47,6 +50,13 @@ class DefParser:
                     elif info[0] == "NETS":
                         new_nets = Nets(int(info[1]))
                         self.stack.append(new_nets)
+                    elif info[0] == "TRACKS":
+                        new_tracks = Tracks(info[1])
+                        new_tracks.pos = int(info[2])
+                        new_tracks.do = int(info[4])
+                        new_tracks.step = int(info[6])
+                        new_tracks.layer = info[8]
+                        self.tracks.append(new_tracks)
                     elif info[0] == "END":
                         if len(self.stack) > 0:
                             self.sections.append(self.stack.pop())
@@ -67,7 +77,6 @@ class DefParser:
         :return: void
         """
         f = open(new_def, mode="w+")
-        #f.write("Ten toi la Nam Thui.\n")
         # first, write the COMPONENTS section
         comps = self.sections[0]
         # check if parsing has been done
@@ -90,14 +99,18 @@ class DefParser:
         current_file.write("END COMPONENTS")
 
 
-
 # Main Class
 if __name__ == '__main__':
     read_path = "./libraries/DEF/c880_tri.def"
     def_parser = DefParser(read_path)
     def_parser.parse()
-    write_path = "./def_write/test_comps.def"
-    def_parser.write_def(write_path)
+    # write to a new DEF file
+    #write_path = "./def_write/test_comps.def"
+    #def_parser.write_def(write_path)
+
+    # try printing track
+    for track in def_parser.tracks:
+        print (track.to_def_format())
 
     ## print out results
     # comps = def_parser.sections[0]

@@ -257,3 +257,45 @@ class Routed:
         return self.points[-1]
 
 
+class Tracks:
+    """
+    Represents a TRACKS definition inside the DEF file.
+    """
+    def __init__(self, name):
+        self.type = "TRACKS_DEF"
+        self.name = name
+        self.pos = None
+        self.do = None
+        self.step = None
+        self.layer = None
+
+    def to_def_format(self):
+        s = ""
+        s += "TRACKS" + " " + self.name + " " + str(self.pos) + " "
+        s += "DO" + " " + str(self.do) + " " + "STEP" + " " + str(self.step)
+        s += " " + "LAYER" + " " + self.layer + " ;"
+        return s
+
+
+class GCellGrid:
+    """
+    Represents a GCELLGRID definition in the DEF file.
+    """
+    def __init__(self):
+        pass
+
+
+class Row:
+    """
+    Represents a ROW definition in the DEF file.
+    """
+    def __init__(self):
+        pass
+
+
+class Property:
+    """
+    Represents a PROPERTYDEFINITIONS in the DEF file.
+    """
+    def __init__(self):
+        pass
