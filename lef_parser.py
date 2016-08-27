@@ -26,7 +26,8 @@ class LefParser:
     def parse(self):
         # Now try using my data structure to parse
         # open the file and start reading
-        f = open(self.lef_path, "r+")
+        print ("Start parsing LEF file...")
+        f = open(self.lef_path, "r")
         # the program will run until the end of file f
         for line in f:
             info = str_to_list(line)
@@ -58,6 +59,7 @@ class LefParser:
                     self.stack.append(nextState)
                     # print (nextState)
         f.close()
+        print ("Parsing LEF file done.")
 
 
 

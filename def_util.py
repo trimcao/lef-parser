@@ -56,6 +56,9 @@ class Pins:
         s += "END PINS"
         return s
 
+    def get_pin(self, pin_name):
+        return self.pin_dict[pin_name]
+
 
 class Pin:
     """
@@ -95,6 +98,9 @@ class Pin:
         s += str(self.placed[1]) + " ) " + self.orient + "\n"
         s += " ;"
         return s
+
+    def get_layer(self):
+        return self.layer
 
 
 class Layer:
@@ -149,6 +155,9 @@ class Components:
     def get_last_comp(self):
         return self.comps[-1]
 
+    def get_comp(self, comp_name):
+        return self.comp_dict[comp_name]
+
     def to_def_format(self):
         s = ""
         s += "COMPONENTS" + " " + str(self.num_comps) + " ;\n"
@@ -170,6 +179,9 @@ class Component:
         self.macro = None
         self.placed = None
         self.orient = None
+
+    def get_macro(self):
+        return self.macro
 
     def __str__(self):
         s = ""
@@ -280,6 +292,9 @@ class Net:
         s += "- " + self.name + "\n"
         s += " "
         for each_comp in self.comp_pin:
+            # study each comp/pin
+            # if it's a pin, check the Pin object layer (already parsed) -
+            # but how can we check the Pin object layer?
             s += " ( " + " ".join(each_comp) + " )"
         s += "\n  + ROUTED " + self.routed[0].to_def_format() + "\n"
         for i in range(1, len(self.routed)):

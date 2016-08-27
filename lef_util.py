@@ -22,7 +22,7 @@ class Statement:
         :return: 1 if parsing is done, -1 if error, otherwise, return the
         object that will be parsed next.
         """
-        # right now, the program assumes the syntax of LEF file is correct
+        # the program assumes the syntax of LEF file is correct
         if data[0] == "MACRO":
             name = data[1]
             new_state = Macro(name)
@@ -176,7 +176,10 @@ class Port(Statement):
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
             self.info["LAYER"][-1].add_rect(data)
+        elif data[0] == "POLYGON":
+            self.info["LAYER"][-1].add_polygon(data)
         return 0
+
 
 
 class Obs(Statement):
@@ -209,7 +212,9 @@ class Obs(Statement):
                 self.info["LAYER"] = [new_layerdef]
         elif data[0] == "RECT":
             # error if the self.info["LAYER"] does not exist
-            self.info["LAYER"][-1].add_rect(data)
+            self.info["LAYER"][-1].add_rect(data) # [-1] means the latest layer
+        elif data[0] == "POLYGON":
+            self.info["LAYER"][-1].add_polygon(data)
         return 0
 
 
@@ -236,6 +241,18 @@ class LayerDef:
         rect = Rect(points)
         self.shapes.append(rect)
 
+    def add_polygon(self, data):
+        #POLYGON 0.09 0.93 0.16 0.93 0.16 1.135 0.46 1.135 0.46 0.93 0.53
+        # 0.93 0.53 1.135 0.84 1.135 0.84 1.07 0.91 1.07 0.91 1.205 0.09 1.205  ;
+        # example: len() = 26
+        points = []
+        for idx in range(1, 2, len(data) - 2):
+            x_cor = float(data[idx])
+            y_cor = float(data[idx+1])
+            points.append([x_cor, y_cor])
+        polygon = Polygon(points)
+        self.shapes.append(polygon)
+
 
 class Rect:
     """
@@ -245,5 +262,14 @@ class Rect:
     # Question: Do I really need a Rect class?
     def __init__(self, points):
         self.type = "RECT"
+        self.points = points
+
+
+class Polygon:
+    """
+    Class Polygon represents a Polygon definition in a LayerDef
+    """
+    def __init__(self, points):
+        self.type = "POLYGON"
         self.points = points
 
