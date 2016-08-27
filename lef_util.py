@@ -4,7 +4,7 @@ Author: Tri Minh Cao
 Email: tricao@utdallas.edu
 Date: August 2016
 """
-
+from util import *
 
 class Statement:
     """
@@ -53,6 +53,8 @@ class Macro(Statement):
         self.name = name
         # other info is stored in this dictionary
         self.info = {}
+        # pin dictionary
+        self.pin_dict = {}
 
     def __str__(self):
         """
@@ -97,6 +99,7 @@ class Macro(Statement):
             self.info["SITE"] = data[1]
         elif data[0] == "PIN":
             new_pin = Pin(data[1])
+            self.pin_dict[data[1]] = new_pin
             if "PIN" in self.info:
                 self.info["PIN"].append(new_pin)
             else:
@@ -112,6 +115,9 @@ class Macro(Statement):
             else:
                 return -1
         return 0
+
+    def get_pin(self, pin_name):
+        return self.pin_dict[pin_name]
 
 
 class Pin(Statement):
@@ -150,6 +156,9 @@ class Pin(Statement):
         # return 0 when we parse a undefined statement
         return 0
 
+    def is_lower_metal(self, split_layer):
+        return self.info["PORT"].is_lower_metal(split_layer)
+
 
 class Port(Statement):
     """
@@ -179,6 +188,15 @@ class Port(Statement):
         elif data[0] == "POLYGON":
             self.info["LAYER"][-1].add_polygon(data)
         return 0
+
+    def is_lower_metal(self, split_layer):
+        lower = True
+        for layer in self.info["LAYER"]:
+            if compare_metal(layer.name, split_layer) >= 0:
+                lower = False
+                break
+        return lower
+
 
 
 

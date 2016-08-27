@@ -12,6 +12,8 @@ BEOL = {"metal1"}
 FEOL = {"metal2", "metal3", "metal4", "metal5", "metal6", "metal7", "metal8",
         "metal9", "metal10"}
 
+SPLIT_LAYER = "metal2"
+
 def proper_layers(back_end, front_end):
     if back_end == False and front_end == False:
         pass
@@ -82,12 +84,14 @@ if __name__ == '__main__':
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
 
-    print (lef_parser.macro_dict["AND2_X1"])
-    print ()
-    print (lef_parser.macro_dict["NAND2_X1"])
-    print ()
-    print (lef_parser.macro_dict["INV_X1"])
-    print ()
+    #print (lef_parser.macro_dict["AND2_X1"])
+    #print ()
+    #print (lef_parser.macro_dict["NAND2_X1"])
+    #print ()
+    for pin in lef_parser.macro_dict["INV_X1"].pin_dict.values():
+        print (pin.name)
+        print (pin.is_lower_metal("metal2"))
+        print
 
     #def_file = "./libraries/DEF/c880_tri.def"
     #def_parser = DefParser(def_file)

@@ -156,3 +156,36 @@ def draw_macro(macro):
     # draw each PIN
     for pin in macro.info["PIN"]:
         draw_pin(pin)
+
+def compare_metal(metal_a, metal_b):
+    """
+    Compare metal layers
+    :param metal_a: the first metal layer description
+    :param metal_b: the second metal layer description
+    :return:
+    """
+    if metal_a == "poly":
+        if metal_b == "poly":
+            return 0
+        else:
+            return -1
+    else:
+        if metal_b == "poly":
+            return 1
+        else:
+            metal_a_num = get_metal_num(metal_a)
+            metal_b_num = get_metal_num(metal_b)
+            return (metal_a_num - metal_b_num)
+
+
+def get_metal_num(metal):
+    """
+    Get mental layer number from a string, such as "metal1" or "metal10"
+    :param metal: string that describes the metal layer
+    :return: metal number
+    """
+    len_metal = len("metal")
+    parse_num = ""
+    for idx in range(len_metal, len(metal)):
+        parse_num += metal[idx]
+    return int(parse_num)
