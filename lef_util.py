@@ -159,6 +159,9 @@ class Pin(Statement):
     def is_lower_metal(self, split_layer):
         return self.info["PORT"].is_lower_metal(split_layer)
 
+    def get_top_metal(self):
+        return self.info["PORT"].get_top_metal()
+
 
 class Port(Statement):
     """
@@ -196,6 +199,13 @@ class Port(Statement):
                 lower = False
                 break
         return lower
+
+    def get_top_metal(self):
+        highest = "poly"
+        for layer in self.info["LAYER"]:
+            if compare_metal(layer.name, highest) > 0:
+                highest = layer.name
+        return highest
 
 
 

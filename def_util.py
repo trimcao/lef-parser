@@ -325,6 +325,9 @@ class Routed:
     def get_last_pt(self):
         return self.points[-1]
 
+    def get_layer(self):
+        return self.layer
+
     def to_def_format(self):
         s = ""
         s += self.layer

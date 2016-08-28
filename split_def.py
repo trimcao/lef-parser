@@ -7,13 +7,6 @@ Date: August 2016
 from def_parser import *
 from lef_parser import *
 
-# names of back-end and front-end layers
-BEOL = {"metal1"}
-FEOL = {"metal2", "metal3", "metal4", "metal5", "metal6", "metal7", "metal8",
-        "metal9", "metal10"}
-
-SPLIT_LAYER = "metal2"
-
 def proper_layers(back_end, front_end):
     if back_end == False and front_end == False:
         pass
@@ -24,62 +17,104 @@ def proper_layers(back_end, front_end):
     else:
         return BEOL | FEOL
 
+# names of back-end and front-end layers
+BEOL = {"metal1"}
+FEOL = {"metal2", "metal3", "metal4", "metal5", "metal6", "metal7", "metal8",
+        "metal9", "metal10"}
+
+SPLIT_LAYER = "metal2"
+
+
 # outside function needed to output the NETS data selectively, because
 # possibly we need to check LEF data and that requires bigger scope.
-def output_nets(self, def_info, lef_info, back_end=True, front_end=True):
+def output_nets(nets, def_info, lef_info):
     """
     Output the NETS section information with possible back end and front
     end selections.
     :param def_info: a DefParser object that contains DEF info.
     :param lef_info: a LefParser object
-    :param back_end: whether to write BEOL info or not.
-    :param front_end: whether to write FEOL info or not.
     :return: string
     """
     s = ""
 
 
-def output_net(self, def_info, lef_info, back_end=True, front_end=True):
+def output_net_routes(net, def_info, lef_info):
+    """
+    Return None if there are no routes in the
+    :param net: a Net object
+    :param def_info: a DefParser object that contains DEF info.
+    :param lef_info: a LefParser object
+    :return: routes if good route exists, None if no route available.
+    """
+    s = ""
+    # output routes
+    num_route = 0
+    first_route_done = False
+    for i in range(len(net.routed)):
+        if net.routed[i].get_layer() in GOOD_LAYERS:
+            num_route += 1
+            if first_route_done:
+                s += "    " + "NEW " + net.routed[i].to_def_format() + "\n"
+            else:
+                s += "  + ROUTED " + net.routed[i].to_def_format() + "\n"
+                first_route_done = True
+    if num_route == 0:
+        return "no route"
+    else:
+        return s
+
+def output_net(net, def_info, lef_info):
     """
     Output a Net object inside the NETS section information with possible back
     end and front end selections.
     :param def_info: a DefParser object that contains DEF info.
     :param lef_info: a LefParser object
-    :param back_end: whether to write BEOL info or not.
-    :param front_end: whether to write FEOL info or not.
     :return: string
     """
-    # need to know what layers are good for the current back-end and
-    # front-end settings
-    good_layers = proper_layers(back_end, front_end)
+    # check number of routes and get the routes
+    routes = output_net_routes(net, def_info, lef_info)
+    if routes == "no route":
+        return ""
     # start setting up the string
     s = ""
-    s += "- " + self.name + "\n"
+    s += "- " + net.name + "\n"
     s += " "
-    for each_comp in self.comp_pin:
+    for each_comp in net.comp_pin:
         # study each comp/pin
         # if it's a pin, check the Pin object layer (already parsed)
         if each_comp[0] == "PIN":
             pin_name = each_comp[1]
-            if def_info.pins.get_pin(pin_name).get_layer().name in good_layers:
+            if def_info.pins.get_pin(pin_name).get_layer().name in GOOD_LAYERS:
                 s += " ( " + " ".join(each_comp) + " )"
         else:
             # for component, need to check LEF info
             comp_id = each_comp[0]
             pin_name = each_comp[1]
             comp = def_info.components.get_comp(comp_id).get_macro()
-            print (comp)
-            comp_info = lef_info
-            # right now, assume all components are in metal1
-            s += " ( " + " ".join(each_comp) + " )"
-    #s += "\n  + ROUTED " + self.routed[0].to_def_format() + "\n"
-    #for i in range(1, len(self.routed)):
-    #    s += "    " + "NEW " + self.routed[i].to_def_format() + "\n"
-    #s += " ;"
+            #print (comp)
+            # get info from LEF Parser
+            comp_info = lef_info.macro_dict[comp]
+            # get pin layer info
+            pin_info = comp_info.pin_dict[pin_name]
+            if pin_info.get_top_metal() in GOOD_LAYERS:
+                s += " ( " + " ".join(each_comp) + " )"
+    # output routes
+    s += "\n"
+    s += routes
+    s += " ;"
     return s
 
 # Main Class
 if __name__ == '__main__':
+
+    # user will choose whether to keep back_end and/or front_end
+    back_end = False
+    front_end = True
+
+    # need to know what layers are good for the current back-end and
+    # front-end settings
+    GOOD_LAYERS = proper_layers(back_end, front_end)
+
     lef_file = "./libraries/Nangate/NangateOpenCellLibrary.lef"
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
@@ -88,18 +123,20 @@ if __name__ == '__main__':
     #print ()
     #print (lef_parser.macro_dict["NAND2_X1"])
     #print ()
-    for pin in lef_parser.macro_dict["INV_X1"].pin_dict.values():
-        print (pin.name)
-        print (pin.is_lower_metal("metal2"))
-        print
+    #for pin in lef_parser.macro_dict["INV_X1"].pin_dict.values():
+    #    print (pin.name)
+    #    print (pin.is_lower_metal("metal2"))
+    #    print
 
-    #def_file = "./libraries/DEF/c880_tri.def"
-    #def_parser = DefParser(def_file)
-    #def_parser.parse()
+    def_file = "./libraries/DEF/c880_tri.def"
+    def_parser = DefParser(def_file)
+    def_parser.parse()
 
-    #nets = def_parser.nets
-    #print (nets.nets[1].to_def_format())
+    nets = def_parser.nets
+    #chosen_net = nets.net_dict["N51"]
+    #print (chosen_net.to_def_format())
     #print
-    #s = output_net(nets.nets[1], def_info=def_parser, lef_info=None,
-    #               back_end=True, front_end=False)
-    #print (s)
+    for net in nets.nets:
+        s = output_net(net, def_info=def_parser, lef_info=lef_parser)
+        if s != "":
+            print (s)
