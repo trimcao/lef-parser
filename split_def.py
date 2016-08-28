@@ -36,6 +36,20 @@ def output_nets(nets, def_info, lef_info):
     :return: string
     """
     s = ""
+    # add each net's data to nets_str
+    nets_str = ""
+    num_nets = 0
+    for net in nets.nets:
+        net_data = output_net(net, def_info, lef_info)
+        if net_data != "":
+            nets_str += net_data
+            nets_str += "\n"
+            num_nets += 1
+    if num_nets > 0:
+        s += "NETS " + str(num_nets) + " ;\n"
+        s += nets_str
+        s += "END NETS"
+    return s
 
 
 def output_net_routes(net, def_info, lef_info):
@@ -84,7 +98,7 @@ def output_net(net, def_info, lef_info):
         # if it's a pin, check the Pin object layer (already parsed)
         if each_comp[0] == "PIN":
             pin_name = each_comp[1]
-            if def_info.pins.get_pin(pin_name).get_layer().name in GOOD_LAYERS:
+            if def_info.pins.get_pin(pin_name).get_metal_layer() in GOOD_LAYERS:
                 s += " ( " + " ".join(each_comp) + " )"
         else:
             # for component, need to check LEF info
@@ -104,16 +118,79 @@ def output_net(net, def_info, lef_info):
     s += " ;"
     return s
 
+def output_comps(comps):
+    """
+    Method to write/output a component to the DEF file
+    :param comp: component to be written
+    :param def_info: DEF file data
+    :param lef_info: LEF file data
+    :return: a string that contains Components section in DEF format.
+    """
+    # assume all components are in bottom layers
+    if "metal1" in GOOD_LAYERS:
+        return comps.to_def_format()
+    else:
+        return ""
+
+def output_pin(pin, def_info):
+    """
+    Method to write/output a pin to the DEF file
+    :param pin: Pin object
+    :param def_info: DEF data
+    :return: a string that contains a Pin in DEF format.
+    """
+    #print (pin.get_layer())
+    if pin.get_metal_layer() in GOOD_LAYERS:
+        return pin.to_def_format()
+    else:
+        return ""
+
+def output_pins(pins, def_info):
+    """
+    Method to write/output the PINS section to the DEF file.
+    :param pins: Pin object
+    :param def_info: DEF data
+    :return: a tring that contains the PINS section in DEF format
+    """
+    s = ""
+    num_pins = 0
+    pins_string = ""
+    for each_pin in pins.pins:
+        pin_data = output_pin(each_pin, def_info)
+        if pin_data != "":
+            pins_string += pin_data
+            pins_string += "\n"
+            num_pins += 1
+    # only write PINS section when we have > 0 pins
+    if num_pins > 0:
+        s = "PINS " + str(num_pins) + " ;\n"
+        s += pins_string
+        s += "END PINS"
+    return s
+
+def output_tracks(def_info):
+    """
+    Method to write/output TRACKS to DEF file.
+    :param def_info: DEF data
+    :return: a string that contains TRACKS info in DEF format.
+    """
+    s = ""
+    for track in def_info.tracks:
+        if track.get_layer() in GOOD_LAYERS:
+            s += track.to_def_format()
+            s += "\n"
+    return s
+
 # Main Class
 if __name__ == '__main__':
 
     # user will choose whether to keep back_end and/or front_end
-    back_end = False
-    front_end = True
+    BACK_END = True
+    FRONT_END = False
 
     # need to know what layers are good for the current back-end and
     # front-end settings
-    GOOD_LAYERS = proper_layers(back_end, front_end)
+    GOOD_LAYERS = proper_layers(BACK_END, FRONT_END)
 
     lef_file = "./libraries/Nangate/NangateOpenCellLibrary.lef"
     lef_parser = LefParser(lef_file)
@@ -132,11 +209,15 @@ if __name__ == '__main__':
     def_parser = DefParser(def_file)
     def_parser.parse()
 
-    nets = def_parser.nets
+    #nets = def_parser.nets
     #chosen_net = nets.net_dict["N51"]
     #print (chosen_net.to_def_format())
     #print
-    for net in nets.nets:
-        s = output_net(net, def_info=def_parser, lef_info=lef_parser)
-        if s != "":
-            print (s)
+    #for net in nets.nets:
+    #    s = output_net(net, def_info=def_parser, lef_info=lef_parser)
+    #    if s != "":
+    #        print (s)
+
+    #print (output_pins(def_parser.pins, def_parser))
+    #print (output_tracks(def_parser))
+    #print (output_nets(def_parser.nets, def_parser, lef_parser))

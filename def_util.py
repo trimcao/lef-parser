@@ -99,8 +99,8 @@ class Pin:
         s += " ;"
         return s
 
-    def get_layer(self):
-        return self.layer
+    def get_metal_layer(self):
+        return self.layer.name
 
 
 class Layer:
@@ -359,6 +359,9 @@ class Tracks:
         s += "DO" + " " + str(self.do) + " " + "STEP" + " " + str(self.step)
         s += " " + "LAYER" + " " + self.layer + " ;"
         return s
+
+    def get_layer(self):
+        return self.layer
 
 
 class GCellGrid:
