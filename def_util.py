@@ -249,6 +249,8 @@ class Nets:
                     else:
                         # this should be via end point
                         new_routed.end_via = info[idx]
+                        # the location of end_via is the last point in the route
+                        new_routed.end_via_loc = new_routed.points[-1]
                 # add new_routed to the current_net
                 current_net.routed.append(new_routed)
 
@@ -312,6 +314,7 @@ class Routed:
         self.layer = None
         self.points = []
         self.end_via = None
+        self.end_via_loc = None
 
     def __str__(self):
         s = ""

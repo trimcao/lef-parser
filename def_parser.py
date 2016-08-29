@@ -190,29 +190,15 @@ if __name__ == '__main__':
     def_parser.parse()
     #print (def_parser.to_def_format())
     # write to a new DEF file
-    write_path = "./def_write/test_c880.def"
+    #write_path = "./def_write/test_c880.def"
     #def_parser.write_def(write_path)
 
-    # try printing track
-    #for track in def_parser.tracks:
-    #    print (track.to_def_format())
+    # test end_via info:
+    nets = def_parser.nets
+    for net in nets.nets:
+        for route in net.routed:
+            if route.end_via != None:
+                if route.end_via[:4] == "via1":
+                    print (route.end_via + " " + str(route.end_via_loc))
+        print ()
 
-    # try printing GCellGrid
-    #for gcell in def_parser.gcellgrids:
-    #    print(gcell.to_def_format())
-
-    # try printing Row
-    #for row in def_parser.rows:
-    #    print (row.to_def_format())
-
-    # try printing PROPERTYDEFINITIONS
-    #props = def_parser.sections[0]
-    #print (props.to_def_format())
-
-    # print out results
-    #comps = def_parser.sections[1]
-    #print (comps.to_def_format())
-    #pins = def_parser.sections[2]
-    #print (pins.to_def_format())
-    #nets = def_parser.sections[3]
-    #print (nets.to_def_format())
