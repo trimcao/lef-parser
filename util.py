@@ -16,9 +16,9 @@ def str_to_list(s):
     """
     result = s.split()
     # check if the last word is ';' and remove it
-    if len(result) >= 1:
-        if result[len(result) - 1] == ";":
-            result.pop()
+    #if len(result) >= 1:
+    #    if result[len(result) - 1] == ";":
+    #        result.pop()
     return result
 
 def scalePts(pts, alpha):

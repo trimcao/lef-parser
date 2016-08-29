@@ -18,6 +18,7 @@ class LefParser:
         self.lef_path = lef_file
         # dictionaries to map the definitions
         self.macro_dict = {}
+        self.layer_dict = {}
         # can make the stack to be an object if needed
         self.stack = []
         # store the statements info in a list
@@ -34,6 +35,7 @@ class LefParser:
             if len(info) != 0:
                 # if info is a blank line, then move to next line
                 # check if the program is processing a statement
+                #print (info)
                 if len(self.stack) != 0:
                     curState = self.stack[len(self.stack) - 1]
                     nextState = curState.parse_next(info)
@@ -52,6 +54,8 @@ class LefParser:
                         done_obj = self.stack.pop()
                         if isinstance(done_obj, Macro):
                             self.macro_dict[done_obj.name] = done_obj
+                        elif isinstance(done_obj, Layer):
+                            self.layer_dict[done_obj.name] = done_obj
                         self.statements.append(done_obj)
                 elif nextState == -1:
                     pass
@@ -69,6 +73,13 @@ if __name__ == '__main__':
     lef_parser = LefParser(path)
     lef_parser.parse()
 
+    # find out some layer
+    for each in lef_parser.layer_dict:
+        layer = lef_parser.layer_dict[each]
+        print (layer.name)
+        print (layer.layer_type)
+        print ()
+    """
     to_draw = []
     to_draw.append(input("Enter the first macro: "))
     to_draw.append(input("Enter the second macro: "))
@@ -100,3 +111,4 @@ if __name__ == '__main__':
 
     #print (macro_dict)
     #print (len(macro_dict))
+    """

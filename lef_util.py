@@ -27,6 +27,10 @@ class Statement:
             name = data[1]
             new_state = Macro(name)
             return new_state
+        elif data[0] == "LAYER" and len(data) == 2: # does not have ;
+            name = data[1]
+            new_state = Layer(name)
+            return new_state
         elif data[0] == "END":
             return 1
         return 0
@@ -78,8 +82,7 @@ class Macro(Statement):
         object.
         :param data: a list of strings that contains pieces of information
         :return: 0 if in progress, 1 if parsing is done, -1 if error,
-        otherwise, return the
-        object that will be parsed next.
+        otherwise, return the object that will be parsed next.
         """
         if data[0] == "CLASS":
             self.info["CLASS"] = data[1]
@@ -300,4 +303,72 @@ class Polygon:
     def __init__(self, points):
         self.type = "POLYGON"
         self.points = points
+
+
+class Layer(Statement):
+    """
+    Layer class represents a LAYER section in LEF file.
+    """
+    def __init__(self, name):
+        # initiate the Statement superclass
+        Statement.__init__(self)
+        self.type = "LAYER"
+        self.name = name
+        self.layer_type = None
+        self.spacing_table = None
+        self.spacing = None
+        self.width = None
+        self.pitch = None
+        self.direction = None
+        self.offset = None
+        self.resistance = None
+        self.thickness = None
+        self.height = None
+        self.capacitance = None
+        self.edge_cap = None
+        self.property = None
+
+    def parse_next(self, data):
+        """
+        Method to add information from a statement from LEF file to a Layer
+        object.
+        :param data: a list of strings that contains pieces of information
+        :return: 0 if in progress, 1 if parsing is done, -1 if error,
+        otherwise, return the object that will be parsed next.
+        """
+        if data[0] == "TYPE":
+            self.layer_type = data[1]
+        elif data[0] == "SPACINGTABLE":
+            pass
+        elif data[0] == "SPACING":
+            self.spacing = float(data[1])
+        elif data[0] == "WIDTH":
+            self.width = float(data[1])
+        elif data[0] == "PITCH":
+            self.pitch = float(data[1])
+        elif data[0] == "DIRECTION":
+            self.direction = data[1]
+        elif data[0] == "OFFSET":
+            self.offset = (float(data[1]), float(data[2]))
+        elif data[0] == "RESISTANCE":
+            if self.layer_type == "ROUTING":
+                self.resistance = (data[1], float(data[2]))
+            elif self.layer_type == "CUT":
+                self.resistance = float(data[1])
+        elif data[0] == "THICKNESS":
+            self.thickness = float(data[1])
+        elif data[0] == "HEIGHT":
+            self.height = float(data[1])
+        elif data[0] == "CAPACITANCE":
+            self.capacitance = (data[1], float(data[2]))
+        elif data[0] == "EDGECAPACITANCE":
+            self.edge_cap = float(data[1])
+        elif data[0] == "PROPERTY":
+            self.property = (data[1], float(data[2]))
+        elif data[0] == "END":
+            if data[1] == self.name:
+                return 1
+            else:
+                return -1
+        return 0
 
