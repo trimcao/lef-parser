@@ -1,5 +1,5 @@
 """
-Useful functions
+Useful functions for DEF/LEF parsers.
 Author: Tri Minh Cao
 Email: tricao@utdallas.edu
 Date: August 2016
@@ -123,6 +123,7 @@ def draw_port(port, color):
             scaled_pts = scalePts(shape.points, SCALE)
             if (shape.type == "RECT"):
                 scaled_pts = rect_to_polygon(scaled_pts)
+            #print (scaled_pts)
             draw_shape = plt.Polygon(scaled_pts, closed=True, fill=True,
                                      color=color)
             plt.gca().add_patch(draw_shape)

@@ -69,17 +69,17 @@ class LefParser:
 
 # Main Class
 if __name__ == '__main__':
-    path = "./libraries/FreePDK45/FreePDK45nm.lef"
+    path = "./libraries/Nangate/NangateOpenCellLibrary.lef"
     lef_parser = LefParser(path)
     lef_parser.parse()
 
     # find out some layer
-    for each in lef_parser.layer_dict:
-        layer = lef_parser.layer_dict[each]
-        print (layer.name)
-        print (layer.layer_type)
-        print ()
-    """
+    #for each in lef_parser.layer_dict:
+    #    layer = lef_parser.layer_dict[each]
+    #    print (layer.name)
+    #    print (layer.layer_type)
+    #    print ()
+
     to_draw = []
     to_draw.append(input("Enter the first macro: "))
     to_draw.append(input("Enter the second macro: "))
@@ -111,4 +111,4 @@ if __name__ == '__main__':
 
     #print (macro_dict)
     #print (len(macro_dict))
-    """
+

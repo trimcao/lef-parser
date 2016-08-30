@@ -273,11 +273,9 @@ class LayerDef:
         self.shapes.append(rect)
 
     def add_polygon(self, data):
-        #POLYGON 0.09 0.93 0.16 0.93 0.16 1.135 0.46 1.135 0.46 0.93 0.53
-        # 0.93 0.53 1.135 0.84 1.135 0.84 1.07 0.91 1.07 0.91 1.205 0.09 1.205  ;
-        # example: len() = 26
         points = []
-        for idx in range(1, 2, len(data) - 2):
+        # add each pair of (x, y) points to a list
+        for idx in range(1, len(data) - 2, 2):
             x_cor = float(data[idx])
             y_cor = float(data[idx+1])
             points.append([x_cor, y_cor])

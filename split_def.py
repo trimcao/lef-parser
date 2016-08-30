@@ -147,7 +147,10 @@ def output_pin(pin, def_info):
     if pin.get_metal_layer() in GOOD_LAYERS:
         return pin.to_def_format()
     else:
-        return ""
+        s = ""
+        s += "- " + pin.name + " + NET " + pin.net
+        s += " + DIRECTION " + pin.direction + " + USE " + pin.use + "\n ;"
+        return s
 
 def output_pins(pins, def_info):
     """
@@ -161,15 +164,15 @@ def output_pins(pins, def_info):
     pins_string = ""
     for each_pin in pins.pins:
         pin_data = output_pin(each_pin, def_info)
-        if pin_data != "":
-            pins_string += pin_data
-            pins_string += "\n"
+        pins_string += pin_data
+        pins_string += "\n"
+        # only count the pin that has proper metal layer
+        if each_pin.get_metal_layer() in GOOD_LAYERS:
             num_pins += 1
     # only write PINS section when we have > 0 pins
-    if num_pins > 0:
-        s = "PINS " + str(num_pins) + " ;\n"
-        s += pins_string
-        s += "END PINS"
+    s = "PINS " + str(num_pins) + " ;\n"
+    s += pins_string
+    s += "END PINS"
     return s
 
 def output_tracks(def_info):
@@ -259,17 +262,17 @@ if __name__ == '__main__':
         elif text[0] == "SPLIT_LAYER":
             SPLIT_LAYER = text[2]
         elif text[0] == "OUTPUT_FILE_NAME":
-            OUTPUT_FILE = "./def_write/" + text[2]
+            OUTPUT_FILE = text[2]
         elif text[0] == "INPUT_FILE_NAME":
-            INPUT_FILE = "./libraries/DEF/" + text[2]
+            INPUT_FILE = text[2]
 
     print ()
     last_setup.close()
 
     use_last_setup = input("Use last setup? (y/n): ")
     if use_last_setup == "n":
-        input_name = input("Enter input DEF file name: ")
-        INPUT_FILE = "./libraries/DEF/" + input_name
+        input_name = input("Enter input DEF file path: ")
+        INPUT_FILE = input_name
         # user will choose whether to keep back_end and/or front_end
         write_back_end = input("Want bottom layers? (y/n): ")
         if write_back_end == "n":
@@ -284,8 +287,8 @@ if __name__ == '__main__':
         SPLIT_LAYER = input("Split layer? (choices from metal1 to metal10): ")
         if SPLIT_LAYER not in LAYERS:
             SPLIT_LAYER = "metal2"
-        output_name = input("Enter DEF output filename: ")
-        OUTPUT_FILE = "./def_write/" + output_name
+        output_name = input("Enter DEF output file path: ")
+        OUTPUT_FILE = output_name
         # write current settings to a file
         setup_file = open("split_def.ini", "w+")
         setup_file.write("INPUT_FILE_NAME = " + input_name +"\n")
