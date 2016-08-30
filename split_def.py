@@ -13,12 +13,12 @@ def proper_layers(back_end, front_end, split_layer):
         return layers
     elif back_end == True and front_end == False:
         for each in LAYERS:
-            if compare_metal(each, split_layer) < 0:
+            if compare_metal(each, split_layer) >= 0:
                 layers.add(each)
         return layers
     elif back_end == False and front_end == True:
         for each in LAYERS:
-            if compare_metal(each, split_layer) >= 0:
+            if compare_metal(each, split_layer) < 0:
                 layers.add(each)
         return layers
     else:
@@ -92,7 +92,7 @@ def output_net(net, def_info, lef_info):
     # check number of routes and get the routes
     routes = output_net_routes(net, def_info, lef_info)
     if routes == "no route":
-        return ""
+        routes = ""
     # start setting up the string
     s = ""
     s += "- " + net.name + "\n"
@@ -245,6 +245,7 @@ if __name__ == '__main__':
     FRONT_END = True
     SPLIT_LAYER = "metal2"
     OUTPUT_FILE = "./def_write/test.def"
+    INPUT_FILE = "./libraries/DEF/c1908.def"
     # load last setup from split_def.ini
     print ("Last setup: ")
     last_setup = open("split_def.ini", "r")
@@ -259,30 +260,35 @@ if __name__ == '__main__':
             SPLIT_LAYER = text[2]
         elif text[0] == "OUTPUT_FILE_NAME":
             OUTPUT_FILE = "./def_write/" + text[2]
+        elif text[0] == "INPUT_FILE_NAME":
+            INPUT_FILE = "./libraries/DEF/" + text[2]
 
     print ()
     last_setup.close()
 
     use_last_setup = input("Use last setup? (y/n): ")
     if use_last_setup == "n":
+        input_name = input("Enter input DEF file name: ")
+        INPUT_FILE = "./libraries/DEF/" + input_name
         # user will choose whether to keep back_end and/or front_end
         write_back_end = input("Want bottom layers? (y/n): ")
         if write_back_end == "n":
-            BACK_END = False
-        else:
-            BACK_END = True
-        write_front_end = input("Want top layers? (y/n): ")
-        if write_front_end == "n":
             FRONT_END = False
         else:
             FRONT_END = True
-        SPLIT_LAYER = input("Split layer? (enter metal1 to metal10): ")
+        write_front_end = input("Want top layers? (y/n): ")
+        if write_front_end == "n":
+            BACK_END = False
+        else:
+            BACK_END = True
+        SPLIT_LAYER = input("Split layer? (choices from metal1 to metal10): ")
         if SPLIT_LAYER not in LAYERS:
             SPLIT_LAYER = "metal2"
         output_name = input("Enter DEF output filename: ")
         OUTPUT_FILE = "./def_write/" + output_name
         # write current settings to a file
         setup_file = open("split_def.ini", "w+")
+        setup_file.write("INPUT_FILE_NAME = " + input_name +"\n")
         setup_file.write("BACK_END = " + str(BACK_END) + "\n")
         setup_file.write("FRONT_END = " + str(FRONT_END) + "\n")
         setup_file.write("SPLIT_LAYER = " + SPLIT_LAYER + "\n")
@@ -304,7 +310,7 @@ if __name__ == '__main__':
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
     print ()
-    def_file = "./libraries/DEF/c880_tri.def"
+    def_file = INPUT_FILE
     def_parser = DefParser(def_file)
     def_parser.parse()
     print ("Writing data to new DEF file with path: " + OUTPUT_FILE )
