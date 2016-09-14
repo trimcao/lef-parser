@@ -19,6 +19,7 @@ class LefParser:
         # dictionaries to map the definitions
         self.macro_dict = {}
         self.layer_dict = {}
+        self.via_dict = {}
         # can make the stack to be an object if needed
         self.stack = []
         # store the statements info in a list
@@ -56,6 +57,8 @@ class LefParser:
                             self.macro_dict[done_obj.name] = done_obj
                         elif isinstance(done_obj, Layer):
                             self.layer_dict[done_obj.name] = done_obj
+                        elif isinstance(done_obj, Via):
+                            self.via_dict[done_obj.name] = done_obj
                         self.statements.append(done_obj)
                 elif nextState == -1:
                     pass
@@ -66,20 +69,11 @@ class LefParser:
         print ("Parsing LEF file done.")
 
 
-
-# Main Class
-if __name__ == '__main__':
-    path = "./libraries/Nangate/NangateOpenCellLibrary.lef"
-    lef_parser = LefParser(path)
-    lef_parser.parse()
-
-    # find out some layer
-    #for each in lef_parser.layer_dict:
-    #    layer = lef_parser.layer_dict[each]
-    #    print (layer.name)
-    #    print (layer.layer_type)
-    #    print ()
-
+def draw_cells():
+    """
+    code to draw cells based on LEF information.
+    :return: void
+    """
     to_draw = []
     to_draw.append(input("Enter the first macro: "))
     to_draw.append(input("Enter the second macro: "))
@@ -109,6 +103,20 @@ if __name__ == '__main__':
     print ("Start drawing...")
     plt.show()
 
-    #print (macro_dict)
-    #print (len(macro_dict))
+
+# Main Class
+if __name__ == '__main__':
+    path = "./libraries/Nangate/NangateOpenCellLibrary.lef"
+    lef_parser = LefParser(path)
+    lef_parser.parse()
+
+    # test via_dict
+    via1_2 = lef_parser.via_dict["via1_2"]
+    print (via1_2.layers)
+    for each in via1_2.layers:
+        print (each.name)
+        for each_shape in each.shapes:
+            print (each_shape.type)
+
+
 

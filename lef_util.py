@@ -31,6 +31,10 @@ class Statement:
             name = data[1]
             new_state = Layer(name)
             return new_state
+        elif data[0] == "VIA":
+            name = data[1]
+            new_state = Via(name)
+            return new_state
         elif data[0] == "END":
             return 1
         return 0
@@ -368,5 +372,29 @@ class Layer(Statement):
                 return 1
             else:
                 return -1
+        return 0
+
+class Via(Statement):
+    """
+    Via class represents a VIA section in LEF file.
+    """
+    def __init__(self, name):
+        # initiate the Statement superclass
+        Statement.__init__(self)
+        self.type = "VIA"
+        self.name = name
+        self.layers = []
+
+    def parse_next(self, data):
+        if data[0] == "END":
+            return 1
+        elif data[0] == "LAYER":
+            name = data[1]
+            new_layerdef = LayerDef(data[1])
+            self.layers.append(new_layerdef)
+        elif data[0] == "RECT":
+            self.layers[-1].add_rect(data) # [-1] means the latest layer
+        elif data[0] == "POLYGON":
+            self.layers.add_polygon(data)
         return 0
 
