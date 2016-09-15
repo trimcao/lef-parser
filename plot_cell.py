@@ -41,15 +41,17 @@ def macro_and_via1(def_info):
             if route.end_via != None:
                 if route.end_via[:4] == "via1":
                     via_loc = route.end_via_loc
+                    via_name = route.end_via
+                    via_info = (via_loc, via_name)
                     # add the via to the component dict
                     for each_comp in net.comp_pin:
                         comp_name = each_comp[0]
                         pin_name = each_comp[1]
                         if comp_name in result_dict:
                             if pin_name in result_dict[comp_name]:
-                                result_dict[comp_name][pin_name].append(via_loc)
+                                result_dict[comp_name][pin_name].append(via_info)
                             else:
-                                result_dict[comp_name][pin_name] = [via_loc]
+                                result_dict[comp_name][pin_name] = [via_info]
     #print (result_dict)
     return result_dict
 
@@ -64,6 +66,8 @@ def draw_via(location, via_info, color='blue'):
         # print (each_layer.name)
         if each_layer.name == 'metal2':
             color = 'red'
+        elif each_layer.name == 'metal1':
+            color = 'blue'
         for shape in each_layer.shapes:
             scaled_pts = scalePts(shape.points, SCALE)
             for i in range(len(scaled_pts)):
@@ -77,25 +81,91 @@ def draw_via(location, via_info, color='blue'):
                                      color=color)
             plt.gca().add_patch(draw_shape)
 
+def plot_component(comp_name, lef_data, def_data, macro_via1_dict):
+    """
+    Use pyplot to plot a component from the DEF data
+    :param comp_name: name of the component
+    :param lef_data: data parsed from LEF file.
+    :param def_data: data parsed from DEF file.
+    :param macro_via_dict: dictionary contains macro and via1 data
+    :return: void
+    """
+    # get info of the component and macro from DEF and LEF
+    comp_info = def_data.components.comp_dict[comp_name]
+    macro_name = comp_info.macro
+    macro_info = lef_data.macro_dict[macro_name]
+    macro_size = macro_info.info["SIZE"]
+    scale = float(def_data.scale)
+    # get the placement of the component
+    bottom_left_pt = comp_info.placed
+    top_right_pt = [int(macro_size[0] * scale),
+                    int(macro_size[1] * scale)]
+    corners = [[0, 0], top_right_pt]
+    # find the vias inside the component's area
+    vias_in_comp = macro_via1_dict[comp_name]
+    vias_draw = []
+    for pin in vias_in_comp:
+        if pin != "MACRO":
+            for each_via in vias_in_comp[pin]:
+                each_via_loc = each_via[0]
+                via_type = each_via[1]
+                new_via_loc = [0, 0]
+                new_via_loc[0] = each_via_loc[0] - bottom_left_pt[0]
+                new_via_loc[1] = each_via_loc[1] - bottom_left_pt[1]
+                if inside_area(new_via_loc, corners):
+                    vias_draw.append((new_via_loc, via_type))
+
+    # NOTE: figsize(6, 9) can be changed to adapt to other cell size
+    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
+    # draw the cell boundary
+    # scaled_pts = rect_to_polygon(corners)
+    # draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
+    #                          color="blue")
+    # plt.gca().add_patch(draw_shape)
+    # plot vias
+    for via in vias_draw:
+        via_name = via[1]
+        via_info = lef_parser.via_dict[via_name]
+        via_loc = via[0]
+        draw_via(via_loc, via_info)
+    # scale the axis of the subplot
+    test_axis = [corners[0][0], corners[1][0], corners[0][1], corners[1][1]]
+    # print (test_axis)
+    plt.axis(test_axis)
+    plt.axis('off')
+    plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('foo.png', bbox_inches='tight')
+    # compose the output file name
+    out_folder = './images/'
+    out_file = comp_name + '_' + macro_name
+    plt.savefig(out_folder + out_file)
+    # plt.savefig(out_file)
+    # plt.show()
+    plt.close('all')
+
 # Main Class
 if __name__ == '__main__':
     read_path = './libraries/DEF/c1908_tri_no_metal1.def'
     def_parser = DefParser(read_path)
     def_parser.parse()
-    scale = float(def_parser.scale)
 
     lef_file = "./libraries/Nangate/NangateOpenCellLibrary.lef"
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
     # test macro and via (note: only via1)
     macro_via1_dict = macro_and_via1(def_parser)
-    # for comp in macro_dict:
+    # for comp in macro_via1_dict:
     #     print (comp)
-    #     for pin in macro_dict[comp]:
-    #         print ("    " + pin + ": " + str(macro_dict[comp][pin]))
+    #     for pin in macro_via1_dict[comp]:
+    #         print ("    " + pin + ": " + str(macro_via1_dict[comp][pin]))
     #     print ()
+    # plot_component("U521", lef_parser, def_parser, macro_via1_dict)
+    for each_comp in macro_via1_dict:
+        # print (each_comp)
+        plot_component(each_comp, lef_parser, def_parser, macro_via1_dict)
+    # plot_component("U825", lef_parser, def_parser, macro_via1_dict)
 
-
+    """
     # try to get the boundary of U825
     u825 = def_parser.components.comp_dict["U669"]
     # print (u825)
@@ -134,7 +204,7 @@ if __name__ == '__main__':
 
     # just plot U825
     # NOTE: figsize(6, 9) can be changed to adapt to other cell size
-    plt.figure(figsize=(6, 9), dpi=80, frameon=False)
+    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
     # plt.figure()
     # fig = plt.figure(frameon=False)
     # fig.set_size_inches(5, 8)
@@ -164,3 +234,4 @@ if __name__ == '__main__':
     # plt.savefig('foo.png', bbox_inches='tight')
     plt.savefig('./images/and.png')
     plt.show()
+    """
