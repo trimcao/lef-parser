@@ -241,6 +241,7 @@ def to_bool(str):
         return False
     else:
         return bool(str)
+
 # Main Class
 if __name__ == '__main__':
     # default settings

@@ -182,61 +182,23 @@ class DefParser:
         f.close()
 
 
-def macro_and_via(def_info):
-    """
-    Method to get macros/cells info and via.
-    :param def_info: information from a DEF file
-    :return: a macro dictionary that contains via info
-    """
-    result_dict = {}
-    # add components to the dictionary
-    for each_comp in def_info.components.comps:
-        result_dict[each_comp.name] = {}
-        result_dict[each_comp.name]["MACRO"] = each_comp.macro
-    # process the nets
-    for net in def_info.nets.nets:
-        for route in net.routed:
-            if route.end_via != None:
-                if route.end_via[:4] == "via1":
-                    via_loc = route.end_via_loc
-                    # add the via to the component dict
-                    for each_comp in net.comp_pin:
-                        comp_name = each_comp[0]
-                        pin_name = each_comp[1]
-                        if comp_name in result_dict:
-                            if pin_name in result_dict[comp_name]:
-                                result_dict[comp_name][pin_name].append(via_loc)
-                            else:
-                                result_dict[comp_name][pin_name] = [via_loc]
-    #print (result_dict)
-    return result_dict
 
 
 
 # Main Class
 if __name__ == '__main__':
-    read_path = "./libraries/DEF/c880_tri.def"
+    # read_path = "./libraries/DEF/c880_tri.def"
+    read_path = "./libraries/DEF/c1908_tri_no_metal1.def"
     def_parser = DefParser(read_path)
     def_parser.parse()
-    #print (def_parser.to_def_format())
-    # write to a new DEF file
-    #write_path = "./def_write/test_c880.def"
-    #def_parser.write_def(write_path)
 
-    # test end_via info:
-    #nets = def_parser.nets
-    #for net in nets.nets:
-    #    for route in net.routed:
-    #        if route.end_via != None:
-    #            if route.end_via[:4] == "via1":
-    #                print (route.end_via + " " + str(route.end_via_loc))
-    #    print ()
-    macro_dict = macro_and_via(def_parser)
-    for comp in macro_dict:
-        print (comp)
-        for pin in macro_dict[comp]:
-            print ("    " + pin + ": " + str(macro_dict[comp][pin]))
-        print ()
+    # test macro and via (note: only via1)
+    macro_dict = macro_and_via1(def_parser)
+    # for comp in macro_dict:
+    #     print (comp)
+    #     for pin in macro_dict[comp]:
+    #         print ("    " + pin + ": " + str(macro_dict[comp][pin]))
+    #     print ()
 
 
 

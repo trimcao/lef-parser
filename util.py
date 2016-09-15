@@ -28,7 +28,7 @@ def scalePts(pts, alpha):
     """
     scaled = []
     for pt in pts:
-        scaled_pt = (alpha*pt[0], alpha*pt[1])
+        scaled_pt = [alpha*pt[0], alpha*pt[1]]
         scaled.append(scaled_pt)
     return scaled
 
