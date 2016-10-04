@@ -50,7 +50,7 @@ def rect_to_polygon(rect_pts):
     return poly_pt
 
 
-def split_parentheses(info: object) -> object:
+def split_parentheses(info):
     """
     make all strings inside parentheses a list
     :param s: a list of strings (called info)

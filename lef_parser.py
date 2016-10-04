@@ -24,6 +24,16 @@ class LefParser:
         self.stack = []
         # store the statements info in a list
         self.statements = []
+        self.cell_height = -1
+
+    def get_cell_height(self):
+        """
+        Get the general cell height in the library
+        :return: void
+        """
+        for macro in self.macro_dict:
+            self.cell_height = self.macro_dict[macro].info["SIZE"][1]
+            break
 
     def parse(self):
         # Now try using my data structure to parse
@@ -66,6 +76,8 @@ class LefParser:
                     self.stack.append(nextState)
                     # print (nextState)
         f.close()
+        # get the cell height of the library
+        self.get_cell_height()
         print ("Parsing LEF file done.")
 
 
