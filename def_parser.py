@@ -182,9 +182,6 @@ class DefParser:
         f.close()
 
 
-
-
-
 # Main Class
 if __name__ == '__main__':
     # read_path = "./libraries/DEF/c880_tri.def"
@@ -193,7 +190,7 @@ if __name__ == '__main__':
     def_parser.parse()
 
     # test macro and via (note: only via1)
-    macro_dict = macro_and_via1(def_parser)
+    # macro_dict = macro_and_via1(def_parser)
     # for comp in macro_dict:
     #     print (comp)
     #     for pin in macro_dict[comp]:
