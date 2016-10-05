@@ -132,7 +132,7 @@ def group_via(via_list, max_number, max_distance):
     return groups
 
 
-def predict_cell(candidates, model, lef_data):
+def predict_cell(candidates, row, model, lef_data):
     """
     Use the trained model to choose the most probable cell from via groups.
     :param candidates: 2-via and 3-via groups that could make a cell
@@ -145,7 +145,7 @@ def predict_cell(candidates, model, lef_data):
                               dtype=np.float32)
     for i in range(len(candidates)):
         each_group = candidates[i]
-        left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * 0]
+        left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * row]
         width = each_group[-1][0][0] - left_pt[0] + margin
         # print (width)
         img_file = plot_window(left_pt, width, CELL_HEIGHT, each_group, lef_data)
@@ -192,7 +192,7 @@ def sorted_components(layout_area, row_height, comps):
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c880.def'
+    def_path = './libraries/layout_freepdk45/c432.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -221,47 +221,58 @@ if __name__ == '__main__':
 
     labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
               5: 'or2'}
-    # process
-    # via_groups is only one row
-    # for each_row in via1_sorted:
-    via_groups = group_via(via1_sorted[0], 3, MAX_DISTANCE)
-    visited_vias = [] # later, make visited_vias a set to run faster
-    cells_pred = []
-    for each_via_group in via_groups:
-        first_via = each_via_group[0][0]
-        if not first_via in visited_vias:
-            best_group, prediction = predict_cell(each_via_group, logit_model, lef_parser)
-            # print (best_group)
-            cells_pred.append(labels[prediction])
-            for each_via in best_group:
-                visited_vias.append(each_via)
-            # print (best_group)
-            # print (labels[prediction])
+    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
+                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
 
-    print (cells_pred)
-    # print (len(cells_pred))
+    # process
     # print the sorted components
     components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
                                    def_parser.components.comps)
-
-    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
-                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
-    comp_0 = []
-    macro_0 = []
-    for each_comp in components[0]:
-        comp_0.append(cell_labels[each_comp.macro])
-        macro_0.append(each_comp.macro)
-    print (comp_0)
-    print (macro_0)
-    # print (macro_0[19])
-    print (len(comp_0))
-
-    # print (cells_pred[19])
     correct = 0
-    for i in range(len(comp_0)):
-        if cells_pred[i] == comp_0[i]:
-            correct += 1
+    total_cells = 0
+    predicts = []
+    actuals = []
+    # via_groups is only one row
+    for i in range(len(via1_sorted)):
+    # for i in range(1, 2):
+        via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
+        visited_vias = [] # later, make visited_vias a set to run faster
+        cells_pred = []
+        for each_via_group in via_groups:
+            first_via = each_via_group[0][0]
+            # print (first_via)
+            if not first_via in visited_vias:
+                best_group, prediction = predict_cell(each_via_group, i,
+                                                      logit_model, lef_parser)
+                # print (best_group)
+                cells_pred.append(labels[prediction])
+                for each_via in best_group:
+                    visited_vias.append(each_via)
+                # print (best_group)
+                # print (labels[prediction])
+
+        print (cells_pred)
+        print (len(cells_pred))
+
+        actual_comp = []
+        actual_macro = []
+        for each_comp in components[i]:
+            actual_comp.append(cell_labels[each_comp.macro])
+            actual_macro.append(each_comp.macro)
+        print (actual_comp)
+        # print (macro_0)
+        # print (macro_0[19])
+        print (len(actual_comp))
+        total_cells += len(actual_comp)
+
+        # print (cells_pred[19])
+        for i in range(len(actual_comp)):
+            if cells_pred[i] == actual_comp[i]:
+                correct += 1
+
+        predicts.append(cells_pred)
+        actuals.append(actual_comp)
 
     print (correct)
-    print (correct / len(comp_0) * 100)
+    print (correct / total_cells * 100)
 
