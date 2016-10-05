@@ -104,6 +104,7 @@ def plot_window(left_pt, width, height, vias, lef_data):
     plt.savefig(out_folder + out_file)
     # plt.savefig(out_file)
     # plt.show()
+    plt.close('all')
     return out_folder + out_file + '.png'
 
 
@@ -159,7 +160,7 @@ def predict_cell(candidates, model, lef_data):
     # Logistic Regression uses.
     X_test = dataset.reshape(dataset.shape[0], img_shape)
     result = model.decision_function(X_test)
-    print (result)
+    # print (result)
     scores = []
     predicts = []
     for each_prediction in result:
@@ -168,6 +169,26 @@ def predict_cell(candidates, model, lef_data):
     best_idx = np.argmax(scores)
     return candidates[best_idx], predicts[best_idx]
 
+
+def sorted_components(layout_area, row_height, comps):
+    """
+    Sort the components by row
+    :param layout_area: a list [x, y] that stores the area of the layout
+    :param comps: a list of components that need to be sorted
+    :return: a list of rows, each containing a list of components in that row.
+    """
+    num_rows = layout_area[1] // row_height + 1
+    rows = []
+    for i in range(num_rows):
+        rows.append([])
+    for comp in comps:
+        comp_y = comp.placed[1]
+        row_dest = comp_y // row_height
+        rows[row_dest].append(comp)
+    # sort vias in each row based on x-coordinate
+    for each_row in rows:
+        each_row.sort(key = lambda x: x.placed[0])
+    return rows
 
 # Main Class
 if __name__ == '__main__':
@@ -190,74 +211,57 @@ if __name__ == '__main__':
     via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
 
     MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
-    # via_groups is only one row
-    via_groups = group_via(via1_sorted[0], 3, MAX_DISTANCE)
-    # print (via_groups[:5])
     # We can load the trained model
-    pickle_filename = "logit_model_100316.pickle"
+    pickle_filename = "logit_model_100516.pickle"
     try:
         with open(pickle_filename, 'rb') as f:
             logit_model = pickle.load(f)
     except Exception as e:
         print('Unable to read data from', pickle_filename, ':', e)
 
-    labels = {0: 'and2', 1: 'inv', 2: 'nand2', 3: 'nor2', 4: 'or2'}
-    best_group, prediction = predict_cell(via_groups[1], logit_model, lef_parser)
-    print (best_group)
-    print (labels[prediction])
-    """
-    test_group = via_groups[1][0]
-    print (test_group)
-    left_pt = [test_group[0][0][0] - 350, CELL_HEIGHT * 0]
-    width = test_group[-1][0][0] - left_pt[0] + 350
-    print (width)
-    img_file = plot_window(left_pt, width, CELL_HEIGHT, test_group, lef_parser)
-    print (img_file)
-    image_data1 = img_util.load_image(img_file)
-    print (image_data1.shape)
+    labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
+              5: 'or2'}
+    # process
+    # via_groups is only one row
+    # for each_row in via1_sorted:
+    via_groups = group_via(via1_sorted[0], 3, MAX_DISTANCE)
+    visited_vias = [] # later, make visited_vias a set to run faster
+    cells_pred = []
+    for each_via_group in via_groups:
+        first_via = each_via_group[0][0]
+        if not first_via in visited_vias:
+            best_group, prediction = predict_cell(each_via_group, logit_model, lef_parser)
+            # print (best_group)
+            cells_pred.append(labels[prediction])
+            for each_via in best_group:
+                visited_vias.append(each_via)
+            # print (best_group)
+            # print (labels[prediction])
 
-    test_group = via_groups[1][1]
-    print (test_group)
-    left_pt = [test_group[0][0][0] - 350, CELL_HEIGHT * 0]
-    width = test_group[-1][0][0] - left_pt[0] + 350
-    print (width)
-    img_file = plot_window(left_pt, width, CELL_HEIGHT, test_group, lef_parser)
-    print (img_file)
-    image_data2 = img_util.load_image(img_file)
-    print (image_data2.shape)
+    print (cells_pred)
+    # print (len(cells_pred))
+    # print the sorted components
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
 
-    img_width = 200
-    img_height = 400
-    test_dataset = np.ndarray(shape=(2, img_height, img_width),
-                              dtype=np.float32)
+    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
+                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
+    comp_0 = []
+    macro_0 = []
+    for each_comp in components[0]:
+        comp_0.append(cell_labels[each_comp.macro])
+        macro_0.append(each_comp.macro)
+    print (comp_0)
+    print (macro_0)
+    # print (macro_0[19])
+    print (len(comp_0))
 
-    test_dataset[0, :, :] = image_data1
-    test_dataset[1, :, :] = image_data2
-    print (test_dataset.shape)
-    # LOGISTIC REGRESSION
-    img_shape = img_width * img_height
+    # print (cells_pred[19])
+    correct = 0
+    for i in range(len(comp_0)):
+        if cells_pred[i] == comp_0[i]:
+            correct += 1
 
-    # NOTE: we need to reshape the dataset into the data that ski-learn Logistic Regression uses.
-    X_test = test_dataset.reshape(test_dataset.shape[0], img_shape)
+    print (correct)
+    print (correct / len(comp_0) * 100)
 
-    regr = logit_model
-
-    print (np.argmax(regr.decision_function(X_test[0:1])))
-    print (regr.decision_function(X_test[0:1]))
-
-
-    # Test different functions of Logistic Regression
-    my_test = X_test[1:2]
-    print (regr.predict(my_test))
-    # predict_proba function will output the probability
-    print (regr.predict_proba(my_test))
-    # decision_function will output the confidence scores
-    print (regr.decision_function(my_test))
-
-    my_test = X_test[0:1]
-    print (regr.predict(my_test))
-    # predict_proba function will output the probability
-    print (regr.predict_proba(my_test))
-    # decision_function will output the confidence scores
-    print (regr.decision_function(my_test))
-    """

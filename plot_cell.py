@@ -121,10 +121,10 @@ def plot_component(comp_name, lef_data, def_data, macro_via1_dict):
     # NOTE: figsize(6, 9) can be changed to adapt to other cell size
     plt.figure(figsize=(3, 5), dpi=80, frameon=False)
     # draw the cell boundary
-    scaled_pts = rect_to_polygon(corners)
-    draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
-                             color="blue")
-    plt.gca().add_patch(draw_shape)
+    # scaled_pts = rect_to_polygon(corners)
+    # draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
+    #                          color="blue")
+    # plt.gca().add_patch(draw_shape)
     # plot vias
     for via in vias_draw:
         via_name = via[1]
@@ -142,7 +142,7 @@ def plot_component(comp_name, lef_data, def_data, macro_via1_dict):
     out_folder = './images/'
     current_time = time.strftime('%H%M%d%m%Y')
     out_file = comp_name + '_' + macro_name + '_' + current_time
-    # plt.savefig(out_folder + out_file)
+    plt.savefig(out_folder + out_file)
     # plt.savefig(out_file)
     # plt.show()
     plt.close('all')
@@ -150,7 +150,7 @@ def plot_component(comp_name, lef_data, def_data, macro_via1_dict):
 # Main Class
 if __name__ == '__main__':
     # read_path = './libraries/DEF/c1908_tri_no_metal1.def'
-    read_path = './libraries/layout_freepdk45/c880.def'
+    read_path = './libraries/layout_freepdk45/c1908.def'
     def_parser = DefParser(read_path)
     def_parser.parse()
 
@@ -169,11 +169,13 @@ if __name__ == '__main__':
     # plot_component("U521", lef_parser, def_parser, macro_via1_dict)
     num_comps = 0
     for each_comp in macro_via1_dict:
-        print (each_comp)
-        plot_component(each_comp, lef_parser, def_parser, macro_via1_dict)
-        num_comps += 1
-        if num_comps > 10:
-            break
+        comp_info = def_parser.components.comp_dict[each_comp]
+        if (comp_info.macro == "INVX8"):
+            print (each_comp)
+            plot_component(each_comp, lef_parser, def_parser, macro_via1_dict)
+            # num_comps += 1
+            # if num_comps > 100:
+            #     break
     print ("Finished!")
     # plot_component("U4068", lef_parser, def_parser, macro_via1_dict)
 
