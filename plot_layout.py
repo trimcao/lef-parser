@@ -60,7 +60,8 @@ def sort_vias_by_row(layout_area, row_height, vias):
         each_row.sort(key = lambda x: x[0][0])
     return rows
 
-def plot_window(left_pt, width, height, vias, lef_data):
+
+def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
     """
     Method to plot a window from the layout with all vias inside it.
     :param left_pt: bottom left point (origin) of the window
@@ -75,10 +76,10 @@ def plot_window(left_pt, width, height, vias, lef_data):
     corners.append((left_pt[0] + width, left_pt[1] + height))
     # scale the axis of the subplot
     # draw the window boundary
-    # scaled_pts = rect_to_polygon(corners)
-    # draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
-    #                          color="blue")
-    # plt.gca().add_patch(draw_shape)
+    scaled_pts = rect_to_polygon(corners)
+    draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
+                             color="blue")
+    plt.gca().add_patch(draw_shape)
 
     # plot the vias inside the windows
     # look for the vias
@@ -99,13 +100,22 @@ def plot_window(left_pt, width, height, vias, lef_data):
     # compose the output file name
     out_folder = './images/'
     # current_time = time.strftime('%H%M%d%m%Y')
-    out_file = (str(corners[0][0]) + '_' + str(corners[0][1]) + '_' +
+    pos = (str(corners[0][0]) + '_' + str(corners[0][1]) + '_' +
                 str(corners[1][0]) + '_' + str(corners[1][1]))
-    plt.savefig(out_folder + out_file)
-    # plt.savefig(out_file)
+    # out_file = out_folder + pos
+    out_file = out_folder
+    out_file += str(corners[0][0])
+    if macro:
+        out_file += '_' + macro
+    if comp:
+        out_file += '_' + comp
+    current_time = time.strftime('%H%M%S%d%m%Y')
+    out_file += '_' + current_time
+    # plt.savefig(out_file, transparent=True)
+    plt.savefig(out_file)
     # plt.show()
     plt.close('all')
-    return out_folder + out_file + '.png'
+    return out_file + '.png'
 
 
 def group_via(via_list, max_number, max_distance):
@@ -138,6 +148,7 @@ def predict_cell(candidates, row, model, lef_data):
     :param candidates: 2-via and 3-via groups that could make a cell
     :return: a tuple (chosen via group, predicted cell name)
     """
+    FEATURE_WEIGHT = 100
     margin = 350
     img_width = 200
     img_height = 400
@@ -159,8 +170,19 @@ def predict_cell(candidates, row, model, lef_data):
     # NOTE: we need to reshape the dataset into the data that ski-learn
     # Logistic Regression uses.
     X_test = dataset.reshape(dataset.shape[0], img_shape)
+
+    # add the feature "number of vias"
+    # for i in range(len(candidates)):
+    #     num_vias = len(candidates[i])
+    #     X_test[i][-1] = FEATURE_WEIGHT * num_vias
+    # print (X_test)
+
     result = model.decision_function(X_test)
+    proba = model.predict_proba(X_test)
     # print (result)
+    # for each in result:
+    #     print (sum(each))
+    # print (proba)
     scores = []
     predicts = []
     for each_prediction in result:
@@ -190,29 +212,10 @@ def sorted_components(layout_area, row_height, comps):
         each_row.sort(key = lambda x: x.placed[0])
     return rows
 
-# Main Class
-if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c432.def'
-    def_parser = DefParser(def_path)
-    def_parser.parse()
-    scale = def_parser.scale
 
-    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
-    lef_parser = LefParser(lef_file)
-    lef_parser.parse()
-
-    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
-    # print (CELL_HEIGHT)
-    print ("Process file:", def_path)
-    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
-    # print (all_via1)
-
-    # sort the vias by row
-    via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
-
-    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
+def predict_row():
     # We can load the trained model
-    pickle_filename = "logit_model_100516.pickle"
+    pickle_filename = "./trained_models/logit_model_100916_2.pickle"
     try:
         with open(pickle_filename, 'rb') as f:
             logit_model = pickle.load(f)
@@ -234,7 +237,7 @@ if __name__ == '__main__':
     actuals = []
     # via_groups is only one row
     for i in range(len(via1_sorted)):
-    # for i in range(1, 2):
+    # for i in range(13, 14):
         via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
@@ -245,11 +248,12 @@ if __name__ == '__main__':
                 best_group, prediction = predict_cell(each_via_group, i,
                                                       logit_model, lef_parser)
                 # print (best_group)
+                # print (labels[prediction])
                 cells_pred.append(labels[prediction])
                 for each_via in best_group:
                     visited_vias.append(each_via)
-                # print (best_group)
-                # print (labels[prediction])
+                    # print (best_group)
+                    # print (labels[prediction])
 
         print (cells_pred)
         print (len(cells_pred))
@@ -276,3 +280,63 @@ if __name__ == '__main__':
     print (correct)
     print (correct / total_cells * 100)
 
+
+def plot_cell_w_vias():
+    # process each row, plot all cells
+    # for i in range(num_rows):
+    margin = 350
+    for i in range(1):
+        via_idx = 0
+        print (len(components[i]))
+        print (len(via1_sorted[i]))
+        for each_comp in components[i]:
+            comp_name = each_comp.name
+            macro_name = each_comp.macro
+            macro_data = lef_parser.macro_dict[macro_name]
+            num_vias = len(macro_data.pin_dict) - 2 # because of VDD and GND pins
+            # get the vias
+            cell_vias = via1_sorted[i][via_idx:via_idx + num_vias]
+            # update via_idx
+            via_idx += num_vias
+            # plot the cell
+            left_pt = [cell_vias[0][0][0] - margin, CELL_HEIGHT * i]
+            width = cell_vias[-1][0][0] - left_pt[0] + margin
+            # print (width)
+            img_file = plot_window(left_pt, width, CELL_HEIGHT, cell_vias,
+                                   lef_parser, macro=macro_name, comp = comp_name)
+            print (comp_name)
+            print (macro_name)
+            print (cell_vias)
+            print (via_idx)
+    print ('Finished!')
+
+# Main Class
+if __name__ == '__main__':
+    def_path = './libraries/layout_freepdk45/c499.def'
+    def_parser = DefParser(def_path)
+    def_parser.parse()
+    scale = def_parser.scale
+
+    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
+    lef_parser = LefParser(lef_file)
+    lef_parser.parse()
+
+    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
+    # print (CELL_HEIGHT)
+    print ("Process file:", def_path)
+    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
+    # print (all_via1)
+
+    # sort the vias by row
+    via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
+
+    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
+
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
+
+    num_rows = len(components)
+    # print (num_rows)
+    predict_row()
+
+    # print (len(via1_sorted))

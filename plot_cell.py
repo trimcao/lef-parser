@@ -142,15 +142,89 @@ def plot_component(comp_name, lef_data, def_data, macro_via1_dict):
     out_folder = './images/'
     current_time = time.strftime('%H%M%d%m%Y')
     out_file = comp_name + '_' + macro_name + '_' + current_time
-    plt.savefig(out_folder + out_file)
-    # plt.savefig(out_file)
+    # plt.savefig(out_folder + out_file, transparent=True)
+    plt.savefig(out_folder + out_file, transparent=False)
+    # plt.show()
+    plt.close('all')
+
+def plot_component2(comp_name, lef_data, def_data, macro_via1_dict):
+    """
+    Use pyplot to plot a component from the DEF data
+    :param comp_name: name of the component
+    :param lef_data: data parsed from LEF file.
+    :param def_data: data parsed from DEF file.
+    :param macro_via_dict: dictionary contains macro and via1 data
+    :return: void
+    """
+    # get info of the component and macro from DEF and LEF
+    comp_info = def_data.components.comp_dict[comp_name]
+    macro_name = comp_info.macro
+    macro_info = lef_data.macro_dict[macro_name]
+    macro_size = macro_info.info["SIZE"]
+    scale = float(def_data.scale)
+    # get the placement of the component
+    bottom_left_pt = comp_info.placed
+    top_right_pt = [bottom_left_pt[0] + int(macro_size[0] * scale),
+                    bottom_left_pt[1] + int(macro_size[1] * scale)]
+    corners = [bottom_left_pt, top_right_pt]
+    # find the vias inside the component's area
+    vias_in_comp = macro_via1_dict[comp_name]
+    vias_draw = []
+    for pin in vias_in_comp:
+        if pin != "MACRO":
+            for each_via in vias_in_comp[pin]:
+                each_via_loc = each_via[0]
+                via_type = each_via[1]
+                # new_via_loc = [0, 0]
+                # new_via_loc[0] = each_via_loc[0]
+                # new_via_loc[1] = each_via_loc[1]
+                if inside_area(each_via_loc, corners):
+                    vias_draw.append((each_via_loc, via_type))
+
+    # sort the vias by x-coordinate
+    vias_draw.sort(key=lambda x: x[0][0])
+    # print (vias_draw)
+    # NOTE: figsize(6, 9) can be changed to adapt to other cell size
+    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
+    margin = 350
+    left_pt = [vias_draw[0][0][0] - margin, bottom_left_pt[1]]
+    width = vias_draw[-1][0][0] - left_pt[0] + margin
+    height = macro_size[1] * scale
+    # print (height)
+    corners = [left_pt]
+    corners.append((left_pt[0] + width, left_pt[1] + height))
+    # draw the cell boundary
+    # scaled_pts = rect_to_polygon(corners)
+    # draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
+    #                          color="blue")
+    # plt.gca().add_patch(draw_shape)
+    # plot vias
+    for via in vias_draw:
+        via_name = via[1]
+        via_info = lef_data.via_dict[via_name]
+        via_loc = via[0]
+        draw_via(via_loc, via_info)
+
+    # scale the axis of the subplot
+    axis = [corners[0][0], corners[1][0], corners[0][1], corners[1][1]]
+    # print (test_axis)
+    plt.axis(axis)
+    plt.axis('off')
+    plt.gca().set_aspect('equal', adjustable='box')
+    # plt.savefig('foo.png', bbox_inches='tight')
+    # compose the output file name
+    out_folder = './images/'
+    current_time = time.strftime('%H%M%S%d%m%Y')
+    out_file = comp_name + '_' + macro_name + '_' + current_time
+    # plt.savefig(out_folder + out_file, transparent=True)
+    plt.savefig(out_folder + out_file, transparent=False)
     # plt.show()
     plt.close('all')
 
 # Main Class
 if __name__ == '__main__':
     # read_path = './libraries/DEF/c1908_tri_no_metal1.def'
-    read_path = './libraries/layout_freepdk45/c1908.def'
+    read_path = './libraries/layout_freepdk45/c1355.def'
     def_parser = DefParser(read_path)
     def_parser.parse()
 
@@ -170,12 +244,12 @@ if __name__ == '__main__':
     num_comps = 0
     for each_comp in macro_via1_dict:
         comp_info = def_parser.components.comp_dict[each_comp]
-        if (comp_info.macro == "INVX8"):
-            print (each_comp)
-            plot_component(each_comp, lef_parser, def_parser, macro_via1_dict)
-            # num_comps += 1
-            # if num_comps > 100:
-            #     break
+        # if (comp_info.macro == "INVX8"):
+        print (each_comp)
+        plot_component2(each_comp, lef_parser, def_parser, macro_via1_dict)
+        num_comps += 1
+        # if num_comps > 20:
+        #     break
     print ("Finished!")
     # plot_component("U4068", lef_parser, def_parser, macro_via1_dict)
 
