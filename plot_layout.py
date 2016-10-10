@@ -104,7 +104,8 @@ def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
                 str(corners[1][0]) + '_' + str(corners[1][1]))
     # out_file = out_folder + pos
     out_file = out_folder
-    out_file += str(corners[0][0])
+    # out_file += str(corners[0][0])
+    out_file += pos
     if macro:
         out_file += '_' + macro
     if comp:
@@ -264,21 +265,50 @@ def predict_row():
             actual_comp.append(cell_labels[each_comp.macro])
             actual_macro.append(each_comp.macro)
         print (actual_comp)
-        # print (macro_0)
-        # print (macro_0[19])
         print (len(actual_comp))
-        total_cells += len(actual_comp)
 
-        # print (cells_pred[19])
-        for i in range(len(actual_comp)):
-            if cells_pred[i] == actual_comp[i]:
-                correct += 1
+        # check predictions vs actual cells
+        # for i in range(len(actual_comp)):
+        #     if cells_pred[i] == actual_comp[i]:
+        #         correct += 1
+        num_correct, num_cells = predict_score(cells_pred, actual_comp)
 
+        correct += num_correct
+        total_cells += num_cells
         predicts.append(cells_pred)
         actuals.append(actual_comp)
 
+        print ()
+
     print (correct)
+    print (total_cells)
     print (correct / total_cells * 100)
+
+
+def predict_score(predicts, actuals):
+    """
+    Find the number of correct cell predictions.
+    :param predicts: a list of predictions.
+    :param actuals: a list of actual cells.
+    :return: # correct predictions, # cells
+    """
+    len_preds = len(predicts)
+    len_actuals = len(actuals)
+    shorter_len = min(len_preds, len_actuals)
+    gap_predict = 0
+    gap_actual = 0
+    num_correct = 0
+    for i in range(shorter_len):
+        if predicts[i + gap_predict] == actuals[i + gap_actual]:
+            num_correct += 1
+        else:
+            if len_preds < len_actuals:
+                gap_actual += 1
+                len_actuals += 1
+            elif len_preds > len_actuals:
+                gap_predict += 1
+                len_preds += 1
+    return num_correct, len(actuals)
 
 
 def plot_cell_w_vias():
@@ -312,7 +342,7 @@ def plot_cell_w_vias():
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c499.def'
+    def_path = './libraries/layout_freepdk45/c6288.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
