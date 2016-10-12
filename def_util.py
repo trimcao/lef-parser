@@ -52,6 +52,7 @@ class Pins:
         s = ""
         s += "PINS" + " " + str(self.num_pins) + " ;\n"
         for each_pin in self.pins:
+            # check if the each_pin has Layer and Placed != None
             s += each_pin.to_def_format() + "\n"
         s += "END PINS"
         return s
@@ -82,8 +83,10 @@ class Pin:
         s += "    " + "Name: " + self.net + "\n"
         s += "    " + "Direction: " + self.direction + "\n"
         s += "    " + "Use: " + self.use + "\n"
-        s += "    " + "Layer: " + str(self.layer) + "\n"
-        s += "    " + "Placed: " + str(self.placed) + " " + self.orient + "\n"
+        if self.layer:
+            s += "    " + "Layer: " + str(self.layer) + "\n"
+        if self.placed:
+            s += "    " + "Placed: " + str(self.placed) + " " + self.orient + "\n"
         return s
 
     def to_def_format(self):
@@ -93,9 +96,11 @@ class Pin:
         s = ""
         s += "- " + self.name + " + NET " + self.net
         s += " + DIRECTION " + self.direction + " + USE " + self.use + "\n"
-        s += "  + " + self.layer.to_def_format() + "\n"
-        s += "  + " + "PLACED " + "( " + str(self.placed[0]) + " "
-        s += str(self.placed[1]) + " ) " + self.orient + "\n"
+        if self.layer:
+            s += "  + " + self.layer.to_def_format() + "\n"
+        if self.placed:
+            s += "  + " + "PLACED " + "( " + str(self.placed[0]) + " "
+            s += str(self.placed[1]) + " ) " + self.orient + "\n"
         s += " ;"
         return s
 
@@ -298,9 +303,10 @@ class Net:
             # if it's a pin, check the Pin object layer (already parsed) -
             # but how can we check the Pin object layer?
             s += " ( " + " ".join(each_comp) + " )"
-        s += "\n  + ROUTED " + self.routed[0].to_def_format() + "\n"
-        for i in range(1, len(self.routed)):
-            s += "    " + "NEW " + self.routed[i].to_def_format() + "\n"
+        if self.routed:
+            s += "\n  + ROUTED " + self.routed[0].to_def_format() + "\n"
+            for i in range(1, len(self.routed)):
+                s += "    " + "NEW " + self.routed[i].to_def_format() + "\n"
         s += " ;"
         return s
 
