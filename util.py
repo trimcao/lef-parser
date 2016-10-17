@@ -320,3 +320,48 @@ def randomize(dataset, labels):
     shuffled_dataset = dataset[permutation, :]
     shuffled_labels = labels[permutation]
     return shuffled_dataset, shuffled_labels
+
+
+def group_via(via_list, max_number, max_distance):
+    """
+    Method to group the vias together to check if they belong to a cell.
+    :param via_list: a list of all vias.
+    :return: a list of groups of vias.
+    """
+    groups = []
+    length = len(via_list)
+    for i in range(length):
+        # one_group = [via_list[i]]
+        curr_via = via_list[i]
+        curr_list = []
+        for j in range(2, max_number + 1):
+            if i + j - 1 < length:
+                right_via = via_list[i + j - 1]
+                dist = right_via[0][0] - curr_via[0][0]
+                if dist < max_distance:
+                    curr_list.append(via_list[i:i+j])
+        # only add via group list that is not empty
+        if len(curr_list) > 0:
+            groups.append(curr_list)
+    return groups
+
+
+def sorted_components(layout_area, row_height, comps):
+    """
+    Sort the components by row
+    :param layout_area: a list [x, y] that stores the area of the layout
+    :param comps: a list of components that need to be sorted
+    :return: a list of rows, each containing a list of components in that row.
+    """
+    num_rows = layout_area[1] // row_height + 1
+    rows = []
+    for i in range(num_rows):
+        rows.append([])
+    for comp in comps:
+        comp_y = comp.placed[1]
+        row_dest = comp_y // row_height
+        rows[row_dest].append(comp)
+    # sort vias in each row based on x-coordinate
+    for each_row in rows:
+        each_row.sort(key = lambda x: x.placed[0])
+    return rows

@@ -153,20 +153,34 @@ def predict_cell(candidates, row, model, lef_data):
     dataset = np.ndarray(shape=(len(candidates), FEATURE_LEN),
                          dtype=np.float32)
     for i in range(len(candidates)):
+        features = []
         each_group = candidates[i]
         left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * row]
         width = each_group[-1][0][0] - left_pt[0] + margin
-        dataset[i, :] = image_data
+        num_vias = len(each_group)
+        features.append(num_vias)
+        x_bound = left_pt[0]
+        y_bound = left_pt[1]
+        # NOTE: some cell has 4 vias
+        # We suppose maximum vias in a cell is 4
+        for each_via in each_group:
+            x_loc = each_via[0][0] - x_bound
+            y_loc = each_via[0][1] - y_bound
+            features.append(x_loc)
+            features.append(y_loc)
+        # if there are only two vias, then there are no via3
+        if num_vias < 4:
+            temp = [-1 for i in range((4 - num_vias) * 2)]
+            features.extend(temp)
+        dataset[i, :] = np.array(features, dtype=np.int32)
 
     # Logistic Regression uses.
-    X_test = dataset.reshape(dataset.shape[0], img_shape)
+    X_test = dataset
+    print (X_test)
 
     result = model.decision_function(X_test)
     proba = model.predict_proba(X_test)
     print (result)
-    # for each in result:
-    #     print (sum(each))
-    # print (proba)
     scores = []
     predicts = []
     for each_prediction in result:
@@ -175,33 +189,8 @@ def predict_cell(candidates, row, model, lef_data):
     best_idx = np.argmax(scores)
     return candidates[best_idx], predicts[best_idx]
 
-# Main Class
-if __name__ == '__main__':
-    random.seed(12345)
-    num_cells_required = 900
 
-    #merge_data()
-
-    # load data from selected pickle
-    set_filename = "./merged_data/selected_10_17_16.pickle"
-    try:
-        with open(set_filename, 'rb') as f:
-            dataset = pickle.load(f)
-    except Exception as e:
-        print('Unable to read data from', set_filename, ':', e)
-
-
-    # build the numpy array
-    label_to_num = {'AND2X1': 0, 'INVX1': 1, 'INVX8': 2, 'NAND2X1': 3,
-                    'NOR2X1': 4, 'OR2X1': 5}
-
-    num_to_label = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
-                    4: 'NOR2X1', 5: 'OR2X1'}
-
-
-    #######
-    # DO SOME PREDICTION
-
+def predict_row():
     # We can load the trained model
     pickle_filename = "./trained_models/logit_model_101716.pickle"
     try:
@@ -215,31 +204,10 @@ if __name__ == '__main__':
     cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
                    'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
 
-    def_path = './libraries/layout_freepdk45/c432.def'
-    def_parser = DefParser(def_path)
-    def_parser.parse()
-    scale = def_parser.scale
-
-    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
-    lef_parser = LefParser(lef_file)
-    lef_parser.parse()
-
-    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
-    # print (CELL_HEIGHT)
-    print ("Process file:", def_path)
-    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
-    # print (all_via1)
-
-    # sort the vias by row
-    via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
-
-    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
-
-    components = util.sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
-
-    num_rows = len(components)
     # process
+    components = util.sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                        def_parser.components.comps)
+    num_rows = len(components)
     # print the sorted components
     correct = 0
     total_cells = 0
@@ -248,7 +216,7 @@ if __name__ == '__main__':
     # via_groups is only one row
     # for i in range(len(via1_sorted)):
     for i in range(3, 4):
-        via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
+        via_groups = util.group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
         for each_via_group in via_groups:
@@ -276,10 +244,6 @@ if __name__ == '__main__':
         print (actual_comp)
         print (len(actual_comp))
 
-        # check predictions vs actual cells
-        # for i in range(len(actual_comp)):
-        #     if cells_pred[i] == actual_comp[i]:
-        #         correct += 1
         num_correct, num_cells = predict_score(cells_pred, actual_comp)
 
         correct += num_correct
@@ -293,3 +257,49 @@ if __name__ == '__main__':
     print (total_cells)
     print (correct / total_cells * 100)
 
+
+# Main Class
+if __name__ == '__main__':
+    random.seed(12345)
+    num_cells_required = 900
+
+    #merge_data()
+
+    # load data from selected pickle
+    set_filename = "./merged_data/selected_10_17_16.pickle"
+    try:
+        with open(set_filename, 'rb') as f:
+            dataset = pickle.load(f)
+    except Exception as e:
+        print('Unable to read data from', set_filename, ':', e)
+
+
+    # build the numpy array
+    label_to_num = {'AND2X1': 0, 'INVX1': 1, 'INVX8': 2, 'NAND2X1': 3,
+                    'NOR2X1': 4, 'OR2X1': 5}
+
+    num_to_label = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
+                    4: 'NOR2X1', 5: 'OR2X1'}
+
+
+    #######
+    # DO SOME PREDICTION
+    def_path = './libraries/layout_freepdk45/c432.def'
+    def_parser = DefParser(def_path)
+    def_parser.parse()
+    scale = def_parser.scale
+
+    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
+    lef_parser = LefParser(lef_file)
+    lef_parser.parse()
+
+    print ("Process file:", def_path)
+    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
+    all_via1 = util.get_all_vias(def_parser, via_type="M2_M1_via")
+    # print (all_via1)
+    # sort the vias by row
+    via1_sorted = util.sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
+
+    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
+
+    predict_row()

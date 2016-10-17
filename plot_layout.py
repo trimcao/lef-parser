@@ -367,8 +367,8 @@ if __name__ == '__main__':
 
     MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
 
-    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
+    # components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+    #                                def_parser.components.comps)
 
     num_rows = len(components)
     # print (num_rows)
