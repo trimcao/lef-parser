@@ -180,7 +180,7 @@ def predict_cell(candidates, row, model, lef_data):
 
     result = model.decision_function(X_test)
     proba = model.predict_proba(X_test)
-    # print (result)
+    print (result)
     # for each in result:
     #     print (sum(each))
     # print (proba)
@@ -237,8 +237,8 @@ def predict_row():
     predicts = []
     actuals = []
     # via_groups is only one row
-    for i in range(len(via1_sorted)):
-    # for i in range(13, 14):
+    # for i in range(len(via1_sorted)):
+    for i in range(3, 4):
         via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
@@ -248,8 +248,8 @@ def predict_row():
             if not first_via in visited_vias:
                 best_group, prediction = predict_cell(each_via_group, i,
                                                       logit_model, lef_parser)
-                # print (best_group)
-                # print (labels[prediction])
+                print (best_group)
+                print (labels[prediction])
                 cells_pred.append(labels[prediction])
                 for each_via in best_group:
                     visited_vias.append(each_via)
@@ -298,16 +298,21 @@ def predict_score(predicts, actuals):
     gap_predict = 0
     gap_actual = 0
     num_correct = 0
+    # print (shorter_len)
     for i in range(shorter_len):
+        # print (i)
+        # print (gap_predict)
+        # print (gap_actual)
+        # print ()
         if predicts[i + gap_predict] == actuals[i + gap_actual]:
             num_correct += 1
         else:
             if len_preds < len_actuals:
                 gap_actual += 1
-                len_actuals += 1
+                len_preds += 1
             elif len_preds > len_actuals:
                 gap_predict += 1
-                len_preds += 1
+                len_actuals += 1
     return num_correct, len(actuals)
 
 
@@ -342,7 +347,7 @@ def plot_cell_w_vias():
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c6288.def'
+    def_path = './libraries/layout_freepdk45/c432.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale

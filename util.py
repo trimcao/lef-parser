@@ -190,3 +190,52 @@ def get_metal_num(metal):
     for idx in range(len_metal, len(metal)):
         parse_num += metal[idx]
     return int(parse_num)
+
+
+def inside_area(location, corners):
+    """
+    Check if the location is inside an area.
+    :param location: location
+    :param corners: corner points of the rectangle area.
+    :return:
+    """
+    x1 = corners[0][0]
+    x2 = corners[1][0]
+    y1 = corners[0][1]
+    y2 = corners[1][1]
+    return (location[0] > x1 and location[0] < x2
+            and location[1] > y1 and location[1] < y2)
+
+
+def macro_and_via1(def_info, via_type):
+    """
+    Method to get macros/cells info and via1 information.
+    :param def_info: information from a DEF file
+    :param via_type: the name of the via type, such as "via1" or "M2_M1_via"
+    :return: a macro dictionary that contains via info
+    """
+    result_dict = {}
+    # add components to the dictionary
+    for each_comp in def_info.components.comps:
+        result_dict[each_comp.name] = {}
+        result_dict[each_comp.name]["MACRO"] = each_comp.macro
+    # process the nets
+    for net in def_info.nets.nets:
+        for route in net.routed:
+            if route.end_via != None:
+                # check for the via type of the end_via
+                if route.end_via[:len(via_type)] == via_type:
+                    via_loc = route.end_via_loc
+                    via_name = route.end_via
+                    via_info = (via_loc, via_name)
+                    # add the via to the component dict
+                    for each_comp in net.comp_pin:
+                        comp_name = each_comp[0]
+                        pin_name = each_comp[1]
+                        if comp_name in result_dict:
+                            if pin_name in result_dict[comp_name]:
+                                result_dict[comp_name][pin_name].append(via_info)
+                            else:
+                                result_dict[comp_name][pin_name] = [via_info]
+    #print (result_dict)
+    return result_dict

@@ -7,6 +7,7 @@ Date: September 2016
 """
 from def_parser import *
 from lef_parser import *
+import util
 import matplotlib.pyplot as plt
 import time
 
