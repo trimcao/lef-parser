@@ -239,3 +239,84 @@ def macro_and_via1(def_info, via_type):
                                 result_dict[comp_name][pin_name] = [via_info]
     #print (result_dict)
     return result_dict
+
+
+def predict_score(predicts, actuals):
+    """
+    Find the number of correct cell predictions.
+    :param predicts: a list of predictions.
+    :param actuals: a list of actual cells.
+    :return: # correct predictions, # cells
+    """
+    len_preds = len(predicts)
+    len_actuals = len(actuals)
+    shorter_len = min(len_preds, len_actuals)
+    gap_predict = 0
+    gap_actual = 0
+    num_correct = 0
+    # print (shorter_len)
+    for i in range(shorter_len):
+        # print (i)
+        # print (gap_predict)
+        # print (gap_actual)
+        # print ()
+        if predicts[i + gap_predict] == actuals[i + gap_actual]:
+            num_correct += 1
+        else:
+            if len_preds < len_actuals:
+                gap_actual += 1
+                len_preds += 1
+            elif len_preds > len_actuals:
+                gap_predict += 1
+                len_actuals += 1
+    return num_correct, len(actuals)
+
+
+def get_all_vias(def_info, via_type):
+    """
+    method to get all vias of the via_type and put them in a list
+    :param def_info: DEF data
+    :param via_type: via type
+    :return: a list of all vias
+    """
+    vias = []
+    # process the nets
+    for net in def_info.nets.nets:
+        for route in net.routed:
+            if route.end_via != None:
+                # check for the via type of the end_via
+                if route.end_via[:len(via_type)] == via_type:
+                    via_loc = route.end_via_loc
+                    via_name = route.end_via
+                    via_info = (via_loc, via_name)
+                    # add a via to the vias list
+                    vias.append(via_info)
+    #print (result_dict)
+    return vias
+
+def sort_vias_by_row(layout_area, row_height, vias):
+    """
+    Sort the vias by row
+    :param layout_area: a list [x, y] that stores the area of the layout
+    :param vias: a list of vias that need to be sorted
+    :return: a list of rows, each containing a list of vias in that row.
+    """
+    num_rows = layout_area[1] // row_height + 1
+    rows = []
+    for i in range(num_rows):
+        rows.append([])
+    for via in vias:
+        via_y = via[0][1]
+        row_dest = via_y // row_height
+        rows[row_dest].append(via)
+    # sort vias in each row based on x-coordinate
+    for each_row in rows:
+        each_row.sort(key = lambda x: x[0][0])
+    return rows
+
+
+def randomize(dataset, labels):
+    permutation = np.random.permutation(labels.shape[0])
+    shuffled_dataset = dataset[permutation, :]
+    shuffled_labels = labels[permutation]
+    return shuffled_dataset, shuffled_labels
