@@ -379,7 +379,30 @@ if __name__ == '__main__':
     num_rows = len(components)
 
     # source/sink list for vias
+    # -1 = don't know, 0 = sink, 1 = source
     source_sink = [-1 for i in range(len(all_via1))]
     print (net_to_via['n192'])
 
+    # inputs and outputs of the c432 design
+    inputs = 'N1, N4, N8, N11, N14, N17, N21, N24, N27, N30, N34, N37, N40, N43, N47, '
+    inputs += 'N50, N53, N56, N60, N63, N66, N69, N73, N76, N79, N82, N86, N89, N92, '
+    inputs += 'N95, N99, N102, N105, N108, N112, N115'
+    outputs = 'N223, N329, N370, N421, N430, N431, N432'
+
+    inputs = inputs.split(', ')
+    outputs = outputs.split(', ')
+
+    # assign source/sink to inputs and outputs
+    for each_in in inputs:
+        for each_via in net_to_via[each_in]:
+            source_sink[each_via] = 0
+    for each_out in outputs:
+        for each_via in net_to_via[each_out]:
+            source_sink[each_via] = 1
+
+    print (source_sink)
+
+
+    ###############
+    # DO PREDICTION
     # predict_row()
