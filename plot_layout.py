@@ -26,19 +26,25 @@ def get_all_vias(def_info, via_type):
     :return: a list of all vias
     """
     vias = []
+    net_to_via = {}
     # process the nets
+    num_vias = 0
     for net in def_info.nets.nets:
+        net_to_via[net.name] = []
         for route in net.routed:
             if route.end_via != None:
                 # check for the via type of the end_via
                 if route.end_via[:len(via_type)] == via_type:
                     via_loc = route.end_via_loc
                     via_name = route.end_via
-                    via_info = (via_loc, via_name)
+                    via_info = (via_loc, via_name, num_vias, net.name)
                     # add a via to the vias list
                     vias.append(via_info)
+                    # net_to_via dict will point to via index
+                    net_to_via[net.name].append(num_vias)
+                    num_vias += 1
     #print (result_dict)
-    return vias
+    return vias, net_to_via
 
 def sort_vias_by_row(layout_area, row_height, vias):
     """
@@ -359,7 +365,7 @@ if __name__ == '__main__':
     CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
     # print (CELL_HEIGHT)
     print ("Process file:", def_path)
-    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
+    all_via1, net_to_via = get_all_vias(def_parser, via_type="M2_M1_via")
     # print (all_via1)
 
     # sort the vias by row
@@ -367,11 +373,13 @@ if __name__ == '__main__':
 
     MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
 
-    # components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-    #                                def_parser.components.comps)
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
 
     num_rows = len(components)
-    # print (num_rows)
-    predict_row()
 
-    # print (len(via1_sorted))
+    # source/sink list for vias
+    source_sink = [-1 for i in range(len(all_via1))]
+    print (net_to_via['n192'])
+
+    # predict_row()

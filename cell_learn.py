@@ -20,6 +20,7 @@ import numpy as np
 # when I train, I will select randomly samples from those bins
 FEATURE_LEN = 9
 
+
 def merge_data():
     random.seed(12345)
     num_cells_required = 900
@@ -89,10 +90,10 @@ def train_model():
     #################
     # CONSTANTS
     train_len = 5000
-    feature_len = 9
+    # feature_len = 9
     #################
-    train_dataset = np.ndarray(shape=(train_len, feature_len),
-                               dtype=np.float32)
+    train_dataset = np.ndarray(shape=(train_len, FEATURE_LEN),
+                               dtype=np.int32)
     train_label = np.ndarray(train_len,
                              dtype=np.int32)
     current_size = 0
@@ -135,7 +136,7 @@ def train_model():
     print(score)
 
     # Save the trained model for later use
-    filename = "./trained_models/logit_model_101716.pickle"
+    filename = "./trained_models/logit_model_101716_2.pickle"
     try:
         with open(filename, 'wb') as f:
             pickle.dump(regr, f, pickle.HIGHEST_PROTOCOL)
@@ -215,7 +216,7 @@ def predict_row():
     actuals = []
     # via_groups is only one row
     # for i in range(len(via1_sorted)):
-    for i in range(3, 4):
+    for i in range(0, 1):
         via_groups = util.group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
@@ -263,7 +264,7 @@ if __name__ == '__main__':
     random.seed(12345)
     num_cells_required = 900
 
-    #merge_data()
+    # merge_data()
 
     # load data from selected pickle
     set_filename = "./merged_data/selected_10_17_16.pickle"
@@ -281,10 +282,11 @@ if __name__ == '__main__':
     num_to_label = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
                     4: 'NOR2X1', 5: 'OR2X1'}
 
+    # train_model()
 
     #######
     # DO SOME PREDICTION
-    def_path = './libraries/layout_freepdk45/c432.def'
+    def_path = './libraries/layout_freepdk45/c880.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -302,4 +304,4 @@ if __name__ == '__main__':
 
     MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
 
-    predict_row()
+    # predict_row()

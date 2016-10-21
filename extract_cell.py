@@ -69,8 +69,11 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
         features.append(y_loc)
     # if there are only two vias, then there are no via3
     if num_vias < 4:
-        temp = [-1 for i in range((4 - num_vias) * 2)]
+        temp = [0 for i in range((4 - num_vias) * 2)]
         features.extend(temp)
+
+    # add more features here
+
     label = macro_name
 
     return features, label
