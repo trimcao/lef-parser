@@ -155,7 +155,6 @@ def predict_cell(candidates, row, model, lef_data):
     :param candidates: 2-via and 3-via groups that could make a cell
     :return: a tuple (chosen via group, predicted cell name)
     """
-    FEATURE_WEIGHT = 100
     margin = 350
     img_width = 200
     img_height = 400
@@ -178,18 +177,9 @@ def predict_cell(candidates, row, model, lef_data):
     # Logistic Regression uses.
     X_test = dataset.reshape(dataset.shape[0], img_shape)
 
-    # add the feature "number of vias"
-    # for i in range(len(candidates)):
-    #     num_vias = len(candidates[i])
-    #     X_test[i][-1] = FEATURE_WEIGHT * num_vias
-    # print (X_test)
-
     result = model.decision_function(X_test)
     proba = model.predict_proba(X_test)
     print (result)
-    # for each in result:
-    #     print (sum(each))
-    # print (proba)
     scores = []
     predicts = []
     for each_prediction in result:
@@ -349,7 +339,31 @@ def plot_cell_w_vias():
             print (macro_name)
             print (cell_vias)
             print (via_idx)
-    print ('Finished!')
+    print('Finished!')
+
+def check_via_group(via_group, source_sink):
+    """
+    Check the validity of each via set in the via group.
+    :param via_group: the via_group in question.
+    :return: via_group with all valid candidate(s)
+    """
+    # valid for 2-via cell: 1 source, 1 sink
+    # valid for 3-via cell: 2 sink, 1 source
+    valid_group = []
+    for each_group in via_group:
+        num_vias = len(each_group)
+        num_source = 0
+        num_sink = 0
+        for each_via in each_group:
+            # 0 = sink, 1 = source
+            if source_sink[each_via[2]] == 1:
+                num_source += 1
+            elif source_sink[each_via[2]] == 0:
+                num_sink += 1
+        if num_source <= 1 and num_sink <=2:
+            valid_group.append(each_group)
+    return valid_group
+
 
 # Main Class
 if __name__ == '__main__':
@@ -400,9 +414,109 @@ if __name__ == '__main__':
         for each_via in net_to_via[each_out]:
             source_sink[each_via] = 1
 
-    print (source_sink)
+    ####
+    # test remove the redundant via in row 4th of c432
+    # we cannot check redundant vias via adjacent vias
+    # maybe I do not implement this correctly
+    # probably this is not a good idea
 
+    row4 = via1_sorted[3]
+    print ("length of row4 before: ", len(row4))
+    row4_new = []
+    for i in range(1, len(row4)):
+        if row4[i][3] != row4[i - 1][3]:
+            row4_new.append(row4[i - 1])
+    row4_new.append(row4[-1])
+    print ("length of row4 after: ", len(row4_new))
+
+    via1_sorted[3] = row4_new
 
     ###############
     # DO PREDICTION
     # predict_row()
+    # We can load the trained model
+    pickle_filename = "./trained_models/logit_model_100916_2.pickle"
+    try:
+        with open(pickle_filename, 'rb') as f:
+            logit_model = pickle.load(f)
+    except Exception as e:
+        print('Unable to read data from', pickle_filename, ':', e)
+
+    labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
+              5: 'or2'}
+    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
+                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
+
+    # process
+    # print the sorted components
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
+    correct = 0
+    total_cells = 0
+    predicts = []
+    actuals = []
+    # via_groups is only one row
+    # for i in range(len(via1_sorted)):
+    for i in range(3, 4):
+        # each via group in via_groups consist of two candidates
+        via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
+        visited_vias = [] # later, make visited_vias a set to run faster
+        cells_pred = []
+        for each_via_group in via_groups:
+            # check source/sink validity for each candidate in the via_group
+            valid_via_group = check_via_group(each_via_group, source_sink)
+            first_via = valid_via_group[0][0]
+            # print (first_via)
+            if not first_via in visited_vias:
+                best_group, prediction = predict_cell(valid_via_group, i,
+                                                      logit_model, lef_parser)
+                print (best_group)
+                print (labels[prediction])
+                cells_pred.append(labels[prediction])
+                for each_via in best_group:
+                    visited_vias.append(each_via)
+                # add source/sink to via
+                # if we have a source, then all other vias with the same net are sink
+                for each_via in best_group[:-1]:
+                    via_id = each_via[2]
+                    if source_sink[via_id] == -1:
+                        source_sink[each_via[2]] = 0
+                # assign the output a source node
+                last_via = best_group[-1]
+                last_via_id = last_via[2]
+                if source_sink[via_id] == -1:
+                    source_sink[each_via[2]] = 1
+                # update other nodes in the same net as sink
+                source_net = last_via[3]
+                vias_in_source_net = net_to_via[source_net]
+                for via_id in vias_in_source_net:
+                    if via_id != last_via_id:
+                        source_sink[via_id] = 0
+
+        print (cells_pred)
+        print (len(cells_pred))
+
+        actual_comp = []
+        actual_macro = []
+        for each_comp in components[i]:
+            actual_comp.append(cell_labels[each_comp.macro])
+            actual_macro.append(each_comp.macro)
+        print (actual_comp)
+        print (len(actual_comp))
+
+        # check predictions vs actual cells
+        # for i in range(len(actual_comp)):
+        #     if cells_pred[i] == actual_comp[i]:
+        #         correct += 1
+        num_correct, num_cells = predict_score(cells_pred, actual_comp)
+
+        correct += num_correct
+        total_cells += num_cells
+        predicts.append(cells_pred)
+        actuals.append(actual_comp)
+
+        print ()
+
+    print (correct)
+    print (total_cells)
+    print (correct / total_cells * 100)
