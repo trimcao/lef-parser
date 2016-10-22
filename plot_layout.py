@@ -82,10 +82,10 @@ def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
     corners.append((left_pt[0] + width, left_pt[1] + height))
     # scale the axis of the subplot
     # draw the window boundary
-    scaled_pts = rect_to_polygon(corners)
-    draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
-                             color="blue")
-    plt.gca().add_patch(draw_shape)
+    # scaled_pts = rect_to_polygon(corners)
+    # draw_shape = plt.Polygon(scaled_pts, closed=True, fill=None,
+    #                          color="blue")
+    # plt.gca().add_patch(draw_shape)
 
     # plot the vias inside the windows
     # look for the vias
@@ -149,7 +149,7 @@ def group_via(via_list, max_number, max_distance):
     return groups
 
 
-def predict_cell(candidates, row, model, lef_data):
+def predict_cell(candidates, row, model, lef_data, std_cells):
     """
     Use the trained model to choose the most probable cell from via groups.
     :param candidates: 2-via and 3-via groups that could make a cell
@@ -158,35 +158,46 @@ def predict_cell(candidates, row, model, lef_data):
     margin = 350
     img_width = 200
     img_height = 400
-    dataset = np.ndarray(shape=(len(candidates), img_height, img_width),
-                              dtype=np.float32)
+    img_shape = img_width * img_height
     for i in range(len(candidates)):
-        each_group = candidates[i]
-        left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * row]
-        width = each_group[-1][0][0] - left_pt[0] + margin
-        # print (width)
-        img_file = plot_window(left_pt, width, CELL_HEIGHT, each_group, lef_data)
-        # print (img_file)
-        image_data = img_util.load_image(img_file)
-        # print (image_data.shape)
-        dataset[i, :, :] = image_data
+        # dataset = np.ndarray(shape=(len(candidates), img_height, img_width),
+        #                      dtype=np.float32)
+        if candidates[i] != -1:
+            dataset = np.ndarray(shape=(1, img_height, img_width),
+                                 dtype=np.float32)
+            each_group = candidates[i]
+            left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * row]
+            width = each_group[-1][0][0] - left_pt[0] + margin
+            # print (width)
+            img_file = plot_window(left_pt, width, CELL_HEIGHT, each_group, lef_data)
+            # print (img_file)
+            image_data = img_util.load_image(img_file)
+            # print (image_data.shape)
+            dataset[0, :, :] = image_data
+            X_test = dataset.reshape(dataset.shape[0], img_shape)
+            result = model.decision_function(X_test)
+            result = result[0]
+            print (result)
+            # check for result
+            if result[i] == max(result):
+                return candidates[i], i
+
 
     # print (dataset.shape)
-    img_shape = img_width * img_height
     # NOTE: we need to reshape the dataset into the data that ski-learn
     # Logistic Regression uses.
-    X_test = dataset.reshape(dataset.shape[0], img_shape)
+    # X_test = dataset.reshape(dataset.shape[0], img_shape)
 
-    result = model.decision_function(X_test)
-    proba = model.predict_proba(X_test)
-    print (result)
-    scores = []
-    predicts = []
-    for each_prediction in result:
-        scores.append(max(each_prediction))
-        predicts.append(np.argmax(each_prediction))
-    best_idx = np.argmax(scores)
-    return candidates[best_idx], predicts[best_idx]
+    # result = model.decision_function(X_test)
+    # proba = model.predict_proba(X_test)
+    # print (result)
+    # scores = []
+    # predicts = []
+    # for each_prediction in result:
+    #     scores.append(max(each_prediction))
+    #     predicts.append(np.argmax(each_prediction))
+    # best_idx = np.argmax(scores)
+    # return candidates[best_idx], predicts[best_idx]
 
 
 def sorted_components(layout_area, row_height, comps):
@@ -365,6 +376,45 @@ def check_via_group(via_group, source_sink):
     return valid_group
 
 
+def get_candidates(first_via_idx, via_list, std_cells):
+    """
+    Generate a list of candidates from the first via.
+    Each standard cell will be considered for candidates.
+    If the standard cell cannot be placed there, the value is -1,
+     otherwise, it will be a list of vias.
+    :param first_via_idx: first via index in the via_list
+    :param via_list: the list of all vias (in a row)
+    :param std_cells: a list that stores information of std cells
+    :return: a list of groups of vias, or -1
+    """
+    # candidates = [-1 for i in range(len(std_cells))]
+    candidates = []
+    first_via = via_list[first_via_idx]
+    # print (first_via)
+    first_via_x = first_via[0][0]
+    for i in range(len(std_cells)):
+        cell_width = std_cells[i][2]
+        min_vias = std_cell_info[i][0]
+        max_vias = std_cells[i][1]
+        pin_left_dist = std_cells[i][3]
+        boundary = first_via_x + cell_width - pin_left_dist
+        # possible vias contain the vias inside the boundary
+        possible_vias = [first_via]
+        for j in range(first_via_idx + 1, len(via_list)):
+            if via_list[j][0][0] <= boundary:
+                possible_vias.append(via_list[j])
+            else:
+                break
+        # check the candidate against cell info
+        if len(possible_vias) > max_vias or len(possible_vias) < min_vias:
+            candidates.append(-1)
+        else:
+            candidates.append(possible_vias)
+    return candidates
+
+
+
+
 # Main Class
 if __name__ == '__main__':
     def_path = './libraries/layout_freepdk45/c432.def'
@@ -420,16 +470,17 @@ if __name__ == '__main__':
     # maybe I do not implement this correctly
     # probably this is not a good idea
 
-    row4 = via1_sorted[3]
-    print ("length of row4 before: ", len(row4))
-    row4_new = []
-    for i in range(1, len(row4)):
-        if row4[i][3] != row4[i - 1][3]:
-            row4_new.append(row4[i - 1])
-    row4_new.append(row4[-1])
-    print ("length of row4 after: ", len(row4_new))
+    # row4 = via1_sorted[3]
+    # print ("length of row4 before: ", len(row4))
+    # row4_new = []
+    # for i in range(1, len(row4)):
+    #     if row4[i][3] != row4[i - 1][3]:
+    #         row4_new.append(row4[i - 1])
+    # row4_new.append(row4[-1])
+    # print ("length of row4 after: ", len(row4_new))
+    #
+    # via1_sorted[3] = row4_new
 
-    via1_sorted[3] = row4_new
 
     ###############
     # DO PREDICTION
@@ -447,6 +498,21 @@ if __name__ == '__main__':
     cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
                    'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
 
+    ##############
+    # List of standard cells
+    std_cell_info = {}
+    # info includes (min num vias, max num vias, width,
+    #  distance from left boundary to first pin)
+    # I wonder if max num vias should be used, actually I don't know what is the
+    # maximum number of vias, but I guess +1 is fine.
+    # 0 is and2, 1 is invx1, etc.
+    std_cell_info[0] = (3, 4, 2280, 295)
+    std_cell_info[1] = (2, 3, 1140, 315)
+    std_cell_info[2] = (2, 3, 2660, 695)
+    std_cell_info[3] = (3, 4, 1520, 90)
+    std_cell_info[4] = (3, 4, 1520, 315)
+    std_cell_info[5] = (3, 4, 2280, 695)
+
     # process
     # print the sorted components
     components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
@@ -459,39 +525,53 @@ if __name__ == '__main__':
     # for i in range(len(via1_sorted)):
     for i in range(3, 4):
         # each via group in via_groups consist of two candidates
-        via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
+        # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
-        for each_via_group in via_groups:
+        via_idx = 0
+        while via_idx < len(via1_sorted[i]):
+            # choosing candidates
+            candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
+            best_group, prediction = predict_cell(candidates, i, logit_model,
+                                                  lef_parser, std_cell_info)
+            via_idx += len(best_group)
+            print (best_group)
+            print (labels[prediction])
+            cells_pred.append(labels[prediction])
+            for each_via in best_group:
+                visited_vias.append(each_via)
+
+        # for each_via_group in via_groups:
             # check source/sink validity for each candidate in the via_group
-            valid_via_group = check_via_group(each_via_group, source_sink)
-            first_via = valid_via_group[0][0]
+            # valid_via_group = check_via_group(each_via_group, source_sink)
+
+            # first_via = each_via_group[0][0]
             # print (first_via)
-            if not first_via in visited_vias:
-                best_group, prediction = predict_cell(valid_via_group, i,
-                                                      logit_model, lef_parser)
-                print (best_group)
-                print (labels[prediction])
-                cells_pred.append(labels[prediction])
-                for each_via in best_group:
-                    visited_vias.append(each_via)
-                # add source/sink to via
-                # if we have a source, then all other vias with the same net are sink
-                for each_via in best_group[:-1]:
-                    via_id = each_via[2]
-                    if source_sink[via_id] == -1:
-                        source_sink[each_via[2]] = 0
-                # assign the output a source node
-                last_via = best_group[-1]
-                last_via_id = last_via[2]
-                if source_sink[via_id] == -1:
-                    source_sink[each_via[2]] = 1
-                # update other nodes in the same net as sink
-                source_net = last_via[3]
-                vias_in_source_net = net_to_via[source_net]
-                for via_id in vias_in_source_net:
-                    if via_id != last_via_id:
-                        source_sink[via_id] = 0
+            # if not first_via in visited_vias:
+            #     best_group, prediction = predict_cell(each_via_group, i,
+            #                                           logit_model, lef_parser)
+            #     print (best_group)
+            #     print (labels[prediction])
+            #     cells_pred.append(labels[prediction])
+            #     for each_via in best_group:
+            #         visited_vias.append(each_via)
+            #     # add source/sink to via
+            #     # if we have a source, then all other vias with the same net are sink
+            #     for each_via in best_group[:-1]:
+            #         via_id = each_via[2]
+            #         if source_sink[via_id] == -1:
+            #             source_sink[each_via[2]] = 0
+            #     # assign the output a source node
+            #     last_via = best_group[-1]
+            #     last_via_id = last_via[2]
+            #     if source_sink[via_id] == -1:
+            #         source_sink[each_via[2]] = 1
+            #     # update other nodes in the same net as sink
+            #     source_net = last_via[3]
+            #     vias_in_source_net = net_to_via[source_net]
+            #     for via_id in vias_in_source_net:
+            #         if via_id != last_via_id:
+            #             source_sink[via_id] = 0
 
         print (cells_pred)
         print (len(cells_pred))
