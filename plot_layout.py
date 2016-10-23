@@ -177,7 +177,7 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
             X_test = dataset.reshape(dataset.shape[0], img_shape)
             result = model.decision_function(X_test)
             result = result[0]
-            print (result)
+            # print (result)
             # check for result
             if result[i] == max(result):
                 return candidates[i], i
@@ -417,7 +417,7 @@ def get_candidates(first_via_idx, via_list, std_cells):
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c432.def'
+    def_path = './libraries/layout_freepdk45/c880.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -444,25 +444,25 @@ if __name__ == '__main__':
 
     # source/sink list for vias
     # -1 = don't know, 0 = sink, 1 = source
-    source_sink = [-1 for i in range(len(all_via1))]
-    print (net_to_via['n192'])
-
-    # inputs and outputs of the c432 design
-    inputs = 'N1, N4, N8, N11, N14, N17, N21, N24, N27, N30, N34, N37, N40, N43, N47, '
-    inputs += 'N50, N53, N56, N60, N63, N66, N69, N73, N76, N79, N82, N86, N89, N92, '
-    inputs += 'N95, N99, N102, N105, N108, N112, N115'
-    outputs = 'N223, N329, N370, N421, N430, N431, N432'
-
-    inputs = inputs.split(', ')
-    outputs = outputs.split(', ')
-
-    # assign source/sink to inputs and outputs
-    for each_in in inputs:
-        for each_via in net_to_via[each_in]:
-            source_sink[each_via] = 0
-    for each_out in outputs:
-        for each_via in net_to_via[each_out]:
-            source_sink[each_via] = 1
+    # source_sink = [-1 for i in range(len(all_via1))]
+    # print (net_to_via['n192'])
+    #
+    # # inputs and outputs of the c432 design
+    # inputs = 'N1, N4, N8, N11, N14, N17, N21, N24, N27, N30, N34, N37, N40, N43, N47, '
+    # inputs += 'N50, N53, N56, N60, N63, N66, N69, N73, N76, N79, N82, N86, N89, N92, '
+    # inputs += 'N95, N99, N102, N105, N108, N112, N115'
+    # outputs = 'N223, N329, N370, N421, N430, N431, N432'
+    #
+    # inputs = inputs.split(', ')
+    # outputs = outputs.split(', ')
+    #
+    # # assign source/sink to inputs and outputs
+    # for each_in in inputs:
+    #     for each_via in net_to_via[each_in]:
+    #         source_sink[each_via] = 0
+    # for each_out in outputs:
+    #     for each_via in net_to_via[each_out]:
+    #         source_sink[each_via] = 1
 
     ####
     # test remove the redundant via in row 4th of c432
@@ -522,8 +522,8 @@ if __name__ == '__main__':
     predicts = []
     actuals = []
     # via_groups is only one row
-    # for i in range(len(via1_sorted)):
-    for i in range(3, 4):
+    for i in range(len(via1_sorted)):
+    # for i in range(3, 4):
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
@@ -535,8 +535,8 @@ if __name__ == '__main__':
             best_group, prediction = predict_cell(candidates, i, logit_model,
                                                   lef_parser, std_cell_info)
             via_idx += len(best_group)
-            print (best_group)
-            print (labels[prediction])
+            # print (best_group)
+            # print (labels[prediction])
             cells_pred.append(labels[prediction])
             for each_via in best_group:
                 visited_vias.append(each_via)
