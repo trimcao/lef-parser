@@ -148,7 +148,7 @@ class Pin(Statement):
         if data[0] == "DIRECTION":
             self.info["DIRECTION"] = data[1]
         elif data[0] == "USE":
-            self.info["DIRECTION"] = data[1]
+            self.info["USE"] = data[1]
         elif data[0] == "PORT":
             new_port = Port()
             self.info["PORT"] = new_port

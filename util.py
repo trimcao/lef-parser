@@ -207,6 +207,22 @@ def inside_area(location, corners):
             and location[1] > y1 and location[1] < y2)
 
 
+def relocate_area(left_pt, corners):
+    """
+    Relocate the corners based on the new bottom left point
+    :param left_pt:
+    :param corners:
+    :return:
+    """
+    x = left_pt[0]
+    y = left_pt[1]
+    new_corners = []
+    for each in corners:
+        new_pt = [each[0] + x, each[1] + y]
+        new_corners.append(new_pt)
+    return new_corners
+
+
 def macro_and_via1(def_info, via_type):
     """
     Method to get macros/cells info and via1 information.

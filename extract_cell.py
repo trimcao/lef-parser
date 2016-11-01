@@ -46,13 +46,23 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
     # sort the vias by x-coordinate
     vias_draw.sort(key=lambda x: x[0][0])
     # crop the cell by the vias location
-    margin = 350
-    left_pt = [vias_draw[0][0][0] - margin, bottom_left_pt[1]]
-    width = vias_draw[-1][0][0] - left_pt[0] + margin
-    height = macro_size[1] * scale
-    corners = [left_pt]
-    corners.append([left_pt[0] + width, left_pt[1] + height])
 
+    # margin = 350
+    # left_pt = [vias_draw[0][0][0] - margin, bottom_left_pt[1]]
+    # width = vias_draw[-1][0][0] - left_pt[0] + margin
+    # height = macro_size[1] * scale
+    # corners = [left_pt]
+    # corners.append([left_pt[0] + width, left_pt[1] + height])
+
+    # get the pins from LEF data
+    pins = []
+    for pin in macro_info.pin_dict.keys():
+        pin_name = pin.lower()
+        if pin_name != 'gnd' and pin_name != 'vdd':
+            pins.append(pin)
+    # print(pins)
+
+    left_pt = bottom_left_pt
     # build the features
     features = []
     # number of vias
@@ -67,15 +77,40 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
         y_loc = each_via[0][1] - y_bound
         features.append(x_loc)
         features.append(y_loc)
+        # determine the type of each via
+        via_loc = each_via[0]
+        print(via_loc)
+        pin_found = False
+        for pin in pins:
+            pin_data = macro_info.pin_dict[pin]
+            pin_direction = pin_data.info["DIRECTION"].lower()
+            layers = pin_data.info["PORT"].info["LAYER"]
+            for layer in layers:
+                for shape in layer.shapes:
+                    # scale the points
+                    corners = util.scalePts(shape.points, scale)
+                    corners = relocate_area(bottom_left_pt, corners)
+                    print(corners)
+                    if inside_area(via_loc, corners):
+                        print(pin)
+                        print(pin_direction)
+                        pin_found = True
+                        if pin_direction == 'output':
+                            features.append(1)
+                        elif pin_direction == 'input':
+                            features.append(0)
+            if pin_found:
+                break
+        if not pin_found:
+            features.append(-1)
+
     # if there are only two vias, then there are no via3
     if num_vias < 4:
-        temp = [0 for i in range((4 - num_vias) * 2)]
+        temp = [-1 for i in range((4 - num_vias) * 3)]
         features.extend(temp)
 
     # add more features here
-
     label = macro_name
-
     return features, label
 
 # Main Class
@@ -87,6 +122,7 @@ if __name__ == '__main__':
     train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
                    "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
                    "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
+    train_files = ['c1355.def']
     folder = "./libraries/layout_freepdk45/"
     for i in range(len(train_files)):
         def_path = os.path.join(folder, train_files[i])
@@ -109,21 +145,25 @@ if __name__ == '__main__':
             samples.append(features)
             labels.append(label)
             num_comps += 1
-            # if num_comps > 10:
-            #     break
-        # for i in range(len(samples)):
-        #     print (samples[i])
-        #     print (labels[i])
-        #     print ()
+            if num_comps > 10:
+                break
+        # print the features
+        for i in range(len(samples)):
+            print(samples[i])
+            print(len(samples[i]))
+            print(labels[i])
+            print()
         dataset = (samples, labels)
-        result_folder = './training_data/'
-        set_filename = os.path.join(result_folder, train_files[i])
-        set_filename += '.pickle'
-        try:
-            with open(set_filename, 'wb') as f:
-                pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print('Unable to save data to', set_filename, ':', e)
+
+        # save the training data
+        # result_folder = './training_data/'
+        # set_filename = os.path.join(result_folder, train_files[i])
+        # set_filename += '.pickle'
+        # try:
+        #     with open(set_filename, 'wb') as f:
+        #         pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        # except Exception as e:
+        #     print('Unable to save data to', set_filename, ':', e)
         print ("Finished!")
 
 

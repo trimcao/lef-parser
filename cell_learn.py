@@ -14,6 +14,7 @@ from lef_parser import *
 import util
 from sklearn.linear_model import LogisticRegression
 import numpy as np
+import plot_layout
 
 # idea: get 900 cells from each type
 # separate all data into bins labeled by macro name (AND2, INVX1, etc.)
@@ -21,21 +22,32 @@ import numpy as np
 FEATURE_LEN = 9
 
 
-def merge_data():
+def save_data_pickle(dataset, filename):
+    # pickle the merged data
+    filename = "./merged_data/freepdk45_10_17_16.pickle"
+    try:
+        with open(filename, 'wb') as f:
+            pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+    except Exception as e:
+        print('Unable to save data to', set_filename, ':', e)
+
+
+def merge_data(data_folder, num_cells):
+    """
+    Read from data pickle files, and merge
+    :return:
+    """
     random.seed(12345)
-    num_cells_required = 900
 
     all_samples = []
     all_labels = []
 
     pickle_folder = "./training_data"
-    pickle_files = os.listdir(pickle_folder)
-    # print (pickle_files)
+    pickle_files = os.listdir(data_folder)
     for file in pickle_files:
-        # pickle_file = "./training_data/c1355.def.pickle"
-        pickle_file = os.path.join(pickle_folder, file)
+        pickle_file = os.path.join(data_folder, file)
         try:
-            with open(pickle_file, 'rb') as f:
+            with open(data_folder, 'rb') as f:
                 dataset = pickle.load(f)
         except Exception as e:
             print('Unable to read data from', pickle_file, ':', e)
@@ -43,13 +55,6 @@ def merge_data():
         all_labels.extend(dataset[1])
 
     all_dataset = (all_samples, all_labels)
-    # pickle the merged data
-    set_filename = "./merged_data/freepdk45_10_17_16.pickle"
-    try:
-        with open(set_filename, 'wb') as f:
-            pickle.dump(all_dataset, f, pickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        print('Unable to save data to', set_filename, ':', e)
 
     dataset = {}
     dataset['AND2X1'] = []
@@ -64,11 +69,11 @@ def merge_data():
     for idx in choices:
         features = all_samples[idx]
         label = all_labels[idx]
-        if len(dataset[label]) < 900:
+        if len(dataset[label]) < num_cells:
             dataset[label].append(features)
         cont = False
         for each_macro in dataset:
-            if len(dataset[each_macro]) < 900:
+            if len(dataset[each_macro]) < num_cells:
                 cont = True
         if not cont:
             break
@@ -79,19 +84,20 @@ def merge_data():
 
     # pickle the selected data
     set_filename = "./merged_data/selected_10_17_16.pickle"
-    try:
-        with open(set_filename, 'wb') as f:
-            pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        print('Unable to save data to', set_filename, ':', e)
+    save_data_pickle(dataset, set_filename)
+
+    # should return the merged data set
+    return dataset
 
 
-def train_model():
-    #################
-    # CONSTANTS
-    train_len = 5000
-    # feature_len = 9
-    #################
+def train_model(dataset, train_len):
+    """
+    Method to train model
+    :param dataset: dataset
+    :param train_len: total length of training set
+    :return: trained model
+    """
+
     train_dataset = np.ndarray(shape=(train_len, FEATURE_LEN),
                                dtype=np.int32)
     train_label = np.ndarray(train_len,
@@ -99,7 +105,7 @@ def train_model():
     current_size = 0
     num_selected = [0, 0, 0, 0, 0, 0]
     while current_size < train_len:
-        choice = random.randrange(6)
+        choice = random.randrange(6) # we have 6 types of cells
         cur_label = num_to_label[choice]
         cur_idx = num_selected[choice]
         train_dataset[current_size, :] = np.array(dataset[cur_label][cur_idx],
@@ -109,17 +115,12 @@ def train_model():
         num_selected[choice] += 1
 
     # shuffle the dataset
-
     train_dataset, train_label = util.randomize(train_dataset, train_label)
 
-    test_dataset = train_dataset[4500:]
+    test_dataset = train_dataset[4500:] # why 4500 here?
     test_label = train_label[4500:]
     train_dataset = train_dataset[:4500]
     train_label = train_label[:4500]
-    # print (len(test_dataset))
-    # print (len(test_label))
-    # print (len(train_dataset))
-    # print (len(train_label))
 
     # train a logistic regression model
     regr = LogisticRegression()
@@ -136,12 +137,10 @@ def train_model():
     print(score)
 
     # Save the trained model for later use
-    filename = "./trained_models/logit_model_101716_2.pickle"
-    try:
-        with open(filename, 'wb') as f:
-            pickle.dump(regr, f, pickle.HIGHEST_PROTOCOL)
-    except Exception as e:
-        print('Unable to save data to', filename, ':', e)
+    filename = "./trained_models/logit_model_103116.pickle"
+    save_data_pickle(regr, filename)
+    # return the trained model
+    return regr
 
 
 def predict_cell(candidates, row, model, lef_data):
@@ -150,6 +149,8 @@ def predict_cell(candidates, row, model, lef_data):
     :param candidates: 2-via and 3-via groups that could make a cell
     :return: a tuple (chosen via group, predicted cell name)
     """
+    # FIXME: re-write this method, remove the margin
+    # possibly I can use the current method of testing the width of each cell
     margin = 350
     dataset = np.ndarray(shape=(len(candidates), FEATURE_LEN),
                          dtype=np.float32)
@@ -177,11 +178,11 @@ def predict_cell(candidates, row, model, lef_data):
 
     # Logistic Regression uses.
     X_test = dataset
-    print (X_test)
+    # print (X_test)
 
     result = model.decision_function(X_test)
     proba = model.predict_proba(X_test)
-    print (result)
+    # print (result)
     scores = []
     predicts = []
     for each_prediction in result:
@@ -192,13 +193,10 @@ def predict_cell(candidates, row, model, lef_data):
 
 
 def predict_row():
+    # FIXME: restructure this method
     # We can load the trained model
     pickle_filename = "./trained_models/logit_model_101716.pickle"
-    try:
-        with open(pickle_filename, 'rb') as f:
-            logit_model = pickle.load(f)
-    except Exception as e:
-        print('Unable to read data from', pickle_filename, ':', e)
+    logit_model = load_data_pickle(pickle_filename)
 
     labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
               5: 'or2'}
@@ -259,6 +257,14 @@ def predict_row():
     print (correct / total_cells * 100)
 
 
+def load_data_pickle(filename):
+    try:
+        with open(filename, 'rb') as f:
+            dataset = pickle.load(f)
+    except Exception as e:
+        print('Unable to read data from', filename, ':', e)
+    return dataset
+
 # Main Class
 if __name__ == '__main__':
     random.seed(12345)
@@ -268,12 +274,7 @@ if __name__ == '__main__':
 
     # load data from selected pickle
     set_filename = "./merged_data/selected_10_17_16.pickle"
-    try:
-        with open(set_filename, 'rb') as f:
-            dataset = pickle.load(f)
-    except Exception as e:
-        print('Unable to read data from', set_filename, ':', e)
-
+    dataset = load_data_pickle(set_filename)
 
     # build the numpy array
     label_to_num = {'AND2X1': 0, 'INVX1': 1, 'INVX8': 2, 'NAND2X1': 3,
@@ -286,7 +287,7 @@ if __name__ == '__main__':
 
     #######
     # DO SOME PREDICTION
-    def_path = './libraries/layout_freepdk45/c880.def'
+    def_path = './libraries/layout_freepdk45/c880a.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -305,3 +306,26 @@ if __name__ == '__main__':
     MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
 
     # predict_row()
+
+
+    ################
+    # new section
+    # FIXME: need to build the netlist
+
+
+    # test the image-based method
+
+    ##############
+    # List of standard cells
+    std_cell_info = {}
+    # info includes (min num vias, max num vias, width,
+    #  distance from left boundary to first pin)
+    # I wonder if max num vias should be used, actually I don't know what is the
+    # maximum number of vias, but I guess +1 is fine.
+    # 0 is and2, 1 is invx1, etc.
+    std_cell_info[0] = (3, 4, 2280, 295)
+    std_cell_info[1] = (2, 3, 1140, 315)
+    std_cell_info[2] = (2, 3, 2660, 695)
+    std_cell_info[3] = (3, 4, 1520, 90)
+    std_cell_info[4] = (3, 4, 1520, 315)
+    std_cell_info[5] = (3, 4, 2280, 695)

@@ -17,6 +17,7 @@ import img_util
 from sklearn.linear_model import LogisticRegression
 # from six.moves import cPickle as pickle
 import pickle
+import random
 
 def get_all_vias(def_info, via_type):
     """
@@ -159,10 +160,12 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
     img_width = 200
     img_height = 400
     img_shape = img_width * img_height
+    possible_candidates = []
     for i in range(len(candidates)):
         # dataset = np.ndarray(shape=(len(candidates), img_height, img_width),
         #                      dtype=np.float32)
         if candidates[i] != -1:
+            possible_candidates.append(i)
             dataset = np.ndarray(shape=(1, img_height, img_width),
                                  dtype=np.float32)
             each_group = candidates[i]
@@ -181,23 +184,9 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
             # check for result
             if result[i] == max(result):
                 return candidates[i], i
-
-
-    # print (dataset.shape)
-    # NOTE: we need to reshape the dataset into the data that ski-learn
-    # Logistic Regression uses.
-    # X_test = dataset.reshape(dataset.shape[0], img_shape)
-
-    # result = model.decision_function(X_test)
-    # proba = model.predict_proba(X_test)
-    # print (result)
-    # scores = []
-    # predicts = []
-    # for each_prediction in result:
-    #     scores.append(max(each_prediction))
-    #     predicts.append(np.argmax(each_prediction))
-    # best_idx = np.argmax(scores)
-    # return candidates[best_idx], predicts[best_idx]
+    # if we cannot find a solution, randomly select a choice
+    choice = random.choice(possible_candidates)
+    return candidates[choice], choice
 
 
 def sorted_components(layout_area, row_height, comps):
@@ -255,8 +244,8 @@ def predict_row():
             if not first_via in visited_vias:
                 best_group, prediction = predict_cell(each_via_group, i,
                                                       logit_model, lef_parser)
-                print (best_group)
-                print (labels[prediction])
+                # print (best_group)
+                # print (labels[prediction])
                 cells_pred.append(labels[prediction])
                 for each_via in best_group:
                     visited_vias.append(each_via)
@@ -417,7 +406,7 @@ def get_candidates(first_via_idx, via_list, std_cells):
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c880.def'
+    def_path = './libraries/layout_freepdk45/c1908.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -523,7 +512,8 @@ if __name__ == '__main__':
     actuals = []
     # via_groups is only one row
     for i in range(len(via1_sorted)):
-    # for i in range(3, 4):
+    # for i in range(4, 5):
+        print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
         visited_vias = [] # later, make visited_vias a set to run faster
