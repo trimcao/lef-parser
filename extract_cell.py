@@ -60,7 +60,6 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
         pin_name = pin.lower()
         if pin_name != 'gnd' and pin_name != 'vdd':
             pins.append(pin)
-    # print(pins)
 
     left_pt = bottom_left_pt
     # build the features
@@ -79,7 +78,7 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
         features.append(y_loc)
         # determine the type of each via
         via_loc = each_via[0]
-        print(via_loc)
+        # print(via_loc)
         pin_found = False
         for pin in pins:
             pin_data = macro_info.pin_dict[pin]
@@ -90,10 +89,10 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
                     # scale the points
                     corners = util.scalePts(shape.points, scale)
                     corners = relocate_area(bottom_left_pt, corners)
-                    print(corners)
+                    # print(corners)
                     if inside_area(via_loc, corners):
-                        print(pin)
-                        print(pin_direction)
+                        # print(pin)
+                        # print(pin_direction)
                         pin_found = True
                         if pin_direction == 'output':
                             features.append(1)
@@ -122,8 +121,8 @@ if __name__ == '__main__':
     train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
                    "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
                    "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
-    train_files = ['c1355.def']
-    folder = "./libraries/layout_freepdk45/"
+    # train_files = ['c1355.def']
+    folder = "./libraries/layout_freepdk45_old/"
     for i in range(len(train_files)):
         def_path = os.path.join(folder, train_files[i])
         print (def_path)
@@ -145,25 +144,25 @@ if __name__ == '__main__':
             samples.append(features)
             labels.append(label)
             num_comps += 1
-            if num_comps > 10:
-                break
+            # if num_comps > 10:
+            #     break
         # print the features
-        for i in range(len(samples)):
-            print(samples[i])
-            print(len(samples[i]))
-            print(labels[i])
-            print()
+        # for i in range(len(samples)):
+        #     print(samples[i])
+        #     print(len(samples[i]))
+        #     print(labels[i])
+        #     print()
         dataset = (samples, labels)
 
         # save the training data
-        # result_folder = './training_data/'
-        # set_filename = os.path.join(result_folder, train_files[i])
-        # set_filename += '.pickle'
-        # try:
-        #     with open(set_filename, 'wb') as f:
-        #         pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-        # except Exception as e:
-        #     print('Unable to save data to', set_filename, ':', e)
+        result_folder = './training_data/'
+        set_filename = os.path.join(result_folder, train_files[i])
+        set_filename += '.pickle'
+        try:
+            with open(set_filename, 'wb') as f:
+                pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            print('Unable to save data to', set_filename, ':', e)
         print ("Finished!")
 
 

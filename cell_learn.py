@@ -265,13 +265,10 @@ def load_data_pickle(filename):
         print('Unable to read data from', filename, ':', e)
     return dataset
 
-# Main Class
-if __name__ == '__main__':
-    random.seed(12345)
+
+def old_main_class():
     num_cells_required = 900
-
     # merge_data()
-
     # load data from selected pickle
     set_filename = "./merged_data/selected_10_17_16.pickle"
     dataset = load_data_pickle(set_filename)
@@ -329,3 +326,10 @@ if __name__ == '__main__':
     std_cell_info[3] = (3, 4, 1520, 90)
     std_cell_info[4] = (3, 4, 1520, 315)
     std_cell_info[5] = (3, 4, 2280, 695)
+
+
+# Main Class
+if __name__ == '__main__':
+    random.seed(12345)
+    # train the model
+
