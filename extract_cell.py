@@ -98,6 +98,7 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
                             features.append(1)
                         elif pin_direction == 'input':
                             features.append(0)
+                        break
             if pin_found:
                 break
         if not pin_found:

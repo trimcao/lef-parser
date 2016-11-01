@@ -19,17 +19,17 @@ import plot_layout
 # idea: get 900 cells from each type
 # separate all data into bins labeled by macro name (AND2, INVX1, etc.)
 # when I train, I will select randomly samples from those bins
-FEATURE_LEN = 9
+FEATURE_LEN = 13
 
 
 def save_data_pickle(dataset, filename):
     # pickle the merged data
-    filename = "./merged_data/freepdk45_10_17_16.pickle"
+    # filename = "./merged_data/freepdk45_10_17_16.pickle"
     try:
         with open(filename, 'wb') as f:
             pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        print('Unable to save data to', set_filename, ':', e)
+        print('Unable to save data to', filename, ':', e)
 
 
 def merge_data(data_folder, num_cells):
@@ -41,21 +41,21 @@ def merge_data(data_folder, num_cells):
 
     all_samples = []
     all_labels = []
-
-    pickle_folder = "./training_data"
     pickle_files = os.listdir(data_folder)
     for file in pickle_files:
         pickle_file = os.path.join(data_folder, file)
-        try:
-            with open(data_folder, 'rb') as f:
-                dataset = pickle.load(f)
-        except Exception as e:
-            print('Unable to read data from', pickle_file, ':', e)
-        all_samples.extend(dataset[0])
-        all_labels.extend(dataset[1])
+        data = load_data_pickle(pickle_file)
+        # REMOVE
+        # pickle_file = os.path.join(data_folder, file)
+        # try:
+        #     with open(data_folder, 'rb') as f:
+        #         dataset = pickle.load(f)
+        # except Exception as e:
+        #     print('Unable to read data from', pickle_file, ':', e)
+        all_samples.extend(data[0])
+        all_labels.extend(data[1])
 
     all_dataset = (all_samples, all_labels)
-
     dataset = {}
     dataset['AND2X1'] = []
     dataset['INVX1'] = []
@@ -82,51 +82,50 @@ def merge_data(data_folder, num_cells):
         print (each_macro)
         print (len(dataset[each_macro]))
 
-    # pickle the selected data
-    set_filename = "./merged_data/selected_10_17_16.pickle"
-    save_data_pickle(dataset, set_filename)
-
     # should return the merged data set
     return dataset
 
 
-def train_model(dataset, train_len):
+def train_model(dataset, data_len, num_to_label):
     """
     Method to train model
     :param dataset: dataset
-    :param train_len: total length of training set
+    :param data_len: total length of training set
     :return: trained model
     """
 
-    train_dataset = np.ndarray(shape=(train_len, FEATURE_LEN),
+    all_dataset = np.ndarray(shape=(data_len, FEATURE_LEN),
                                dtype=np.int32)
-    train_label = np.ndarray(train_len,
+    all_label = np.ndarray(data_len,
                              dtype=np.int32)
     current_size = 0
     num_selected = [0, 0, 0, 0, 0, 0]
-    while current_size < train_len:
+    while current_size < data_len:
         choice = random.randrange(6) # we have 6 types of cells
         cur_label = num_to_label[choice]
         cur_idx = num_selected[choice]
-        train_dataset[current_size, :] = np.array(dataset[cur_label][cur_idx],
+        cur_data = dataset[cur_label][cur_idx]
+        all_dataset[current_size, :] = np.array(dataset[cur_label][cur_idx],
                                                   dtype=np.int32)
-        train_label[current_size] = choice
+        all_label[current_size] = choice
         current_size += 1
         num_selected[choice] += 1
 
     # shuffle the dataset
-    train_dataset, train_label = util.randomize(train_dataset, train_label)
+    all_dataset, all_label = util.randomize(all_dataset, all_label)
+    num_train = int(0.9 * data_len)
 
-    test_dataset = train_dataset[4500:] # why 4500 here?
-    test_label = train_label[4500:]
-    train_dataset = train_dataset[:4500]
-    train_label = train_label[:4500]
+    #print(max(all_label))
+
+    test_dataset = all_dataset[num_train:]
+    test_label = all_label[num_train:]
+    train_dataset = all_dataset[:num_train]
+    train_label = all_label[:num_train]
 
     # train a logistic regression model
     regr = LogisticRegression()
     X_train = train_dataset
     y_train = train_label
-
     X_test = test_dataset
     y_test = test_label
 
@@ -137,8 +136,8 @@ def train_model(dataset, train_len):
     print(score)
 
     # Save the trained model for later use
-    filename = "./trained_models/logit_model_103116.pickle"
-    save_data_pickle(regr, filename)
+    # filename = "./trained_models/logit_model_103116.pickle"
+    # save_data_pickle(regr, filename)
     # return the trained model
     return regr
 
@@ -149,9 +148,8 @@ def predict_cell(candidates, row, model, lef_data):
     :param candidates: 2-via and 3-via groups that could make a cell
     :return: a tuple (chosen via group, predicted cell name)
     """
-    # FIXME: re-write this method, remove the margin
     # possibly I can use the current method of testing the width of each cell
-    margin = 350
+    # margin = 350
     dataset = np.ndarray(shape=(len(candidates), FEATURE_LEN),
                          dtype=np.float32)
     for i in range(len(candidates)):
@@ -328,8 +326,212 @@ def old_main_class():
     std_cell_info[5] = (3, 4, 2280, 695)
 
 
+def get_candidates(first_via_idx, via_list, std_cells):
+    """
+    Generate a list of candidates from the first via.
+    Each standard cell will be considered for candidates.
+    If the standard cell cannot be placed there, the value is -1,
+     otherwise, it will be a list of vias.
+    :param first_via_idx: first via index in the via_list
+    :param via_list: the list of all vias (in a row)
+    :param std_cells: a list that stores information of std cells
+    :return: a list of groups of vias, or -1
+    """
+    # candidates = [-1 for i in range(len(std_cells))]
+    candidates = []
+    first_via = via_list[first_via_idx]
+    # print (first_via)
+    first_via_x = first_via[0][0]
+    for i in range(len(std_cells)):
+        cell_width = std_cells[i][2]
+        min_vias = std_cell_info[i][0]
+        max_vias = std_cells[i][1]
+        pin_left_dist = std_cells[i][3]
+        boundary = first_via_x + cell_width - pin_left_dist
+        # possible vias contain the vias inside the boundary
+        possible_vias = [first_via]
+        for j in range(first_via_idx + 1, len(via_list)):
+            if via_list[j][0][0] <= boundary:
+                possible_vias.append(via_list[j])
+            else:
+                break
+        # check the candidate against cell info
+        if len(possible_vias) > max_vias or len(possible_vias) < min_vias:
+            candidates.append(-1)
+        else:
+            candidates.append(possible_vias)
+    return candidates
+
+
+def get_inputs_outputs(def_info):
+    """
+    Method to get all inputs and outputs nets from a DEF file.
+    :param def_info: def info (already parsed).
+    :return: inputs and outputs
+    """
+    pins = def_parser.pins.pins
+    inputs = []
+    outputs = []
+    for each_pin in pins:
+        pin_name = each_pin.name
+        direction = each_pin.direction.lower()
+        if direction == 'input':
+            inputs.append(pin_name)
+        elif direction == 'output':
+            outputs.append(pin_name)
+    return inputs, outputs
+
+
 # Main Class
 if __name__ == '__main__':
     random.seed(12345)
+    # CONSTANTS
+    label_to_num = {'AND2X1': 0, 'INVX1': 1, 'INVX8': 2, 'NAND2X1': 3,
+                    'NOR2X1': 4, 'OR2X1': 5}
+
+    num_to_label = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
+                    4: 'NOR2X1', 5: 'OR2X1'}
+    # CELL_HEIGHT = ?
+
+    # merge the data
+    # pickle_folder = './training_data/'
+    # dataset = merge_data(pickle_folder, 1100)
+
+    # study the data
+    # and2_data = dataset['AND2X1']
+    # print(and2_data[:50])
+
+    # pickle the merged data
+    # set_filename = "./merged_data/selected_11_01_16.pickle"
+    # save_data_pickle(dataset, set_filename)
+
     # train the model
+    # regr_model = train_model(dataset, 5500, num_to_label)
+    # save_data_pickle(regr_model, './trained_models/logit_110116.pickle')
+
+    # load the model
+    model_file = './trained_models/logit_110116.pickle'
+    regr_model = load_data_pickle(model_file)
+
+    #######
+    # PREDICTION
+    # get information from DEF and LEF files
+    def_path = './libraries/layout_freepdk45/c432.def'
+    def_parser = DefParser(def_path)
+    def_parser.parse()
+    scale = def_parser.scale
+
+    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
+    lef_parser = LefParser(lef_file)
+    lef_parser.parse()
+
+    print ("Process file:", def_path)
+    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
+    all_via1 = util.get_all_vias(def_parser, via_type="M2_M1_via")
+    # print (all_via1[:50])
+
+    # build the net_via dictionary
+    nets = def_parser.nets.nets
+    # initialize the nets_via_dict
+    nets_vias_dict = {}
+    for net in nets:
+        net_name = net.name
+        nets_vias_dict[net_name] = []
+    # add vias to nets_dict
+    for each_via in all_via1:
+        net = each_via[2]
+        nets_vias_dict[net].append(each_via)
+
+    # sort the vias by row
+    via1_sorted = util.sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
+
+    # add inputs and outputs from the design to via info
+    inputs, outputs = get_inputs_outputs(def_parser)
+    # print(inputs)
+    # print(outputs)
+    for each_in in inputs:
+        for each_via in nets_vias_dict[each_in]:
+            each_via[3] = 0
+    for each_out in outputs:
+        for each_via in nets_vias_dict[each_out]:
+            each_via[3] = 1
+
+
+
+    """
+
+    labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
+              5: 'or2'}
+    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
+                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
+
+    ##############
+    # List of standard cells
+    std_cell_info = {}
+    # info includes (min num vias, max num vias, width,
+    #  distance from left boundary to first pin)
+    # I wonder if max num vias should be used, actually I don't know what is the
+    # maximum number of vias, but I guess +1 is fine.
+    # 0 is and2, 1 is invx1, etc.
+    std_cell_info[0] = (3, 4, 2280, 295)
+    std_cell_info[1] = (2, 3, 1140, 315)
+    std_cell_info[2] = (2, 3, 2660, 695)
+    std_cell_info[3] = (3, 4, 1520, 90)
+    std_cell_info[4] = (3, 4, 1520, 315)
+    std_cell_info[5] = (3, 4, 2280, 695)
+    # print the sorted components
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
+    correct = 0
+    total_cells = 0
+    predicts = []
+    actuals = []
+    # via_groups is only one row
+    for i in range(len(via1_sorted)):
+        # for i in range(4, 5):
+        print ('Process row', (i + 1))
+        visited_vias = [] # later, make visited_vias a set to run faster
+        cells_pred = []
+        via_idx = 0
+        while via_idx < len(via1_sorted[i]):
+            # choosing candidates
+            candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
+            best_group, prediction = predict_cell(candidates, i, logit_model,
+                                                  lef_parser, std_cell_info)
+            via_idx += len(best_group)
+            # print (best_group)
+            # print (labels[prediction])
+            cells_pred.append(labels[prediction])
+            for each_via in best_group:
+                visited_vias.append(each_via)
+
+        print (cells_pred)
+        print (len(cells_pred))
+
+        actual_comp = []
+        actual_macro = []
+        for each_comp in components[i]:
+            actual_comp.append(cell_labels[each_comp.macro])
+            actual_macro.append(each_comp.macro)
+        print (actual_comp)
+        print (len(actual_comp))
+
+        # check predictions vs actual cells
+        # for i in range(len(actual_comp)):
+        #     if cells_pred[i] == actual_comp[i]:
+        #         correct += 1
+        num_correct, num_cells = predict_score(cells_pred, actual_comp)
+
+        correct += num_correct
+        total_cells += num_cells
+        predicts.append(cells_pred)
+        actuals.append(actual_comp)
+
+        print ()
+
+    print (correct)
+    print (total_cells)
+    print (correct / total_cells * 100)
+    """
+
 

@@ -7,6 +7,7 @@ Date: August 2016
 
 SCALE = 2000
 import matplotlib.pyplot as plt
+import numpy as np
 
 def str_to_list(s):
     """
@@ -304,7 +305,8 @@ def get_all_vias(def_info, via_type):
                 if route.end_via[:len(via_type)] == via_type:
                     via_loc = route.end_via_loc
                     via_name = route.end_via
-                    via_info = (via_loc, via_name)
+                    default_via_type = -1 # 0 = input, 1 = output
+                    via_info = [via_loc, via_name, net.name, default_via_type]
                     # add a via to the vias list
                     vias.append(via_info)
     #print (result_dict)
