@@ -10,6 +10,12 @@ from lef_parser import *
 import util
 import pickle
 import os
+import math
+
+
+def nCr(n,r):
+    f = math.factorial
+    return f(n) / f(r) / f(n-r)
 
 
 def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
@@ -103,12 +109,28 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
                 break
         if not pin_found:
             features.append(-1)
-
     # if there are only two vias, then there are no via3
     if num_vias < 4:
         temp = [-1 for i in range((4 - num_vias) * 3)]
         features.extend(temp)
 
+    # add the distance between vias
+    for i in range(len(vias_draw) - 1):
+        for j in range(i + 1, len(vias_draw)):
+            x_dist = vias_draw[j][0][0] - vias_draw[i][0][0]
+            y_dist = vias_draw[j][0][1] - vias_draw[i][0][1]
+            features.append(x_dist)
+            features.append(y_dist)
+    # add extra features in case of having less vias
+    if num_vias < 4:
+        if num_vias == 1:
+            remain_dists = 2 * int(nCr(4, 2))
+        else:
+            remain_dists = 2 * (int(nCr(4, 2) - nCr(num_vias, 2)))
+        temp = [0 for i in range(remain_dists)]
+        features.extend(temp)
+    print(features)
+    print(len(features))
     # add more features here
     label = macro_name
     return features, label
@@ -119,10 +141,10 @@ if __name__ == '__main__':
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
 
-    train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
-                   "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
-                   "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
-    # train_files = ['c1355.def']
+    # train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
+    #                "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
+    #                "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
+    train_files = ['c1355.def']
     folder = "./libraries/layout_freepdk45_old/"
     for i in range(len(train_files)):
         def_path = os.path.join(folder, train_files[i])
@@ -156,14 +178,14 @@ if __name__ == '__main__':
         dataset = (samples, labels)
 
         # save the training data
-        result_folder = './training_data/'
-        set_filename = os.path.join(result_folder, train_files[i])
-        set_filename += '.pickle'
-        try:
-            with open(set_filename, 'wb') as f:
-                pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-        except Exception as e:
-            print('Unable to save data to', set_filename, ':', e)
-        print ("Finished!")
+        # result_folder = './training_data/'
+        # set_filename = os.path.join(result_folder, train_files[i])
+        # set_filename += '.pickle'
+        # try:
+        #     with open(set_filename, 'wb') as f:
+        #         pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        # except Exception as e:
+        #     print('Unable to save data to', set_filename, ':', e)
+        # print ("Finished!")
 
 

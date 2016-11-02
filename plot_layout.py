@@ -406,7 +406,7 @@ def get_candidates(first_via_idx, via_list, std_cells):
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c1908.def'
+    def_path = './libraries/layout_freepdk45/c432.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
