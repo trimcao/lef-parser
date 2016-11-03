@@ -13,10 +13,6 @@ import os
 import math
 
 
-def nCr(n,r):
-    f = math.factorial
-    return f(n) / f(r) / f(n-r)
-
 
 def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
     """
@@ -80,7 +76,7 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
     for each_via in vias_draw:
         x_loc = each_via[0][0] - x_bound
         y_loc = each_via[0][1] - y_bound
-        features.append(x_loc)
+        # features.append(x_loc)
         features.append(y_loc)
         # determine the type of each via
         via_loc = each_via[0]
@@ -111,7 +107,9 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
             features.append(-1)
     # if there are only two vias, then there are no via3
     if num_vias < 4:
-        temp = [-1 for i in range((4 - num_vias) * 3)]
+        # temp = [-1 for i in range((4 - num_vias) * 3)]
+        # trial: only use num_vias, no x-coordinate and y-coordinate
+        temp = [-1 for i in range((4 - num_vias) * 2)]
         features.extend(temp)
 
     # add the distance between vias
@@ -124,13 +122,14 @@ def extract_comp(comp_name, lef_data, def_data, macro_via1_dict):
     # add extra features in case of having less vias
     if num_vias < 4:
         if num_vias == 1:
-            remain_dists = 2 * int(nCr(4, 2))
+            remain_dists = 2 * int(util.nCr(4, 2))
         else:
-            remain_dists = 2 * (int(nCr(4, 2) - nCr(num_vias, 2)))
+            remain_dists = 2 * (int(util.nCr(4, 2) - util.nCr(num_vias, 2)))
         temp = [0 for i in range(remain_dists)]
         features.extend(temp)
-    print(features)
-    print(len(features))
+    # print(macro_name)
+    # print(features)
+    # print(len(features))
     # add more features here
     label = macro_name
     return features, label
@@ -141,10 +140,10 @@ if __name__ == '__main__':
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
 
-    # train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
-    #                "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
-    #                "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
-    train_files = ['c1355.def']
+    train_files = ['c1355.def', "c1355_INVX8.def", "c2670.def", "c2670_no_AND2.def",
+                   "c2670_OR2.def", "c3540.def", "c3540_no_AND2.def",
+                   "c3540_no_NAND2.def", "c5315.def", "c7552.def"]
+    # train_files = ['c1355.def']
     folder = "./libraries/layout_freepdk45_old/"
     for i in range(len(train_files)):
         def_path = os.path.join(folder, train_files[i])
@@ -178,14 +177,14 @@ if __name__ == '__main__':
         dataset = (samples, labels)
 
         # save the training data
-        # result_folder = './training_data/'
-        # set_filename = os.path.join(result_folder, train_files[i])
-        # set_filename += '.pickle'
-        # try:
-        #     with open(set_filename, 'wb') as f:
-        #         pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-        # except Exception as e:
-        #     print('Unable to save data to', set_filename, ':', e)
-        # print ("Finished!")
+        result_folder = './training_data/'
+        set_filename = os.path.join(result_folder, train_files[i])
+        set_filename += '.pickle'
+        try:
+            with open(set_filename, 'wb') as f:
+                pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            print('Unable to save data to', set_filename, ':', e)
+        print ("Finished!")
 
 

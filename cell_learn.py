@@ -16,7 +16,7 @@ from sklearn.linear_model import LogisticRegression
 import numpy as np
 import plot_layout
 
-FEATURE_LEN = 19
+FEATURE_LEN = 21
 
 
 def save_data_pickle(dataset, filename):
@@ -90,11 +90,10 @@ def train_model(dataset, data_len, num_to_label):
     :param data_len: total length of training set
     :return: trained model
     """
-
     all_dataset = np.ndarray(shape=(data_len, FEATURE_LEN),
-                               dtype=np.float32)
+                               dtype=np.int32)
     all_label = np.ndarray(data_len,
-                             dtype=np.float32)
+                             dtype=np.int32)
     current_size = 0
     num_selected = [0, 0, 0, 0, 0, 0]
     while current_size < data_len:
@@ -109,8 +108,9 @@ def train_model(dataset, data_len, num_to_label):
         num_selected[choice] += 1
 
     # shuffle the dataset
+    random.seed(6789)
     all_dataset, all_label = util.randomize(all_dataset, all_label)
-    num_train = int(0.9 * data_len)
+    num_train = int(0.85 * data_len)
 
     #print(max(all_label))
 
@@ -136,7 +136,7 @@ def train_model(dataset, data_len, num_to_label):
     # filename = "./trained_models/logit_model_103116.pickle"
     # save_data_pickle(regr, filename)
     # return the trained model
-    return regr
+    return regr, X_train, y_train, X_test, y_test
 
 
 def predict_cell(candidates, row, model, lef_data, std_cells):
@@ -154,44 +154,64 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
         if candidates[i] != -1:
             features = []
             each_group = candidates[i]
-            width = std_cells[2]
-            left_margin = std_cells[i][3]
-            left_pt = [each_group[0][0][0] - left_margin, CELL_HEIGHT * row]
-            # width = each_group[-1][0][0] - left_pt[0] + margin
-            num_vias = len(each_group)
-            features.append(num_vias)
-            x_bound = left_pt[0]
-            y_bound = left_pt[1]
-            # NOTE: some cell has 4 vias
-            # We suppose maximum vias in a cell is 4
-            for each_via in each_group:
-                x_loc = each_via[0][0] - x_bound
-                y_loc = each_via[0][1] - y_bound
-                features.append(x_loc)
-                features.append(y_loc)
-                # add via type
-                features.append(each_via[3])
-            # if there are only two vias, then there are no via3
-            if num_vias < 4:
-                temp = [-1 for i in range((4 - num_vias) * 3)]
-                features.extend(temp)
-            # do predict
-            dataset = np.array(features, dtype=np.float32)
-            print(dataset)
-            X_test = dataset.reshape(1, FEATURE_LEN)
-            result = model.decision_function(X_test)
-            result = result[0]
-            print(result)
-            scores[i] = result[i]
+            # width = std_cells[2]
+            # left_margin = std_cells[i][-1]
+            for left_margin in range(50, 800, 50):
+                left_pt = [each_group[0][0][0] - left_margin, CELL_HEIGHT * row]
+                # width = each_group[-1][0][0] - left_pt[0] + margin
+                num_vias = len(each_group)
+                features.append(num_vias)
+                x_bound = left_pt[0]
+                y_bound = left_pt[1]
+                # NOTE: some cell has 4 vias
+                # We suppose maximum vias in a cell is 4
+                for each_via in each_group:
+                    x_loc = each_via[0][0] - x_bound
+                    y_loc = each_via[0][1] - y_bound
+                    features.append(x_loc)
+                    features.append(y_loc)
+                    # add via type
+                    features.append(each_via[3])
+                # if there are only two vias, then there are no via3
+                if num_vias < 4:
+                    temp = [-1 for i in range((4 - num_vias) * 3)]
+                    features.extend(temp)
+                # add the distance between vias
+                for i in range(num_vias - 1):
+                    for j in range(i + 1, num_vias):
+                        x_dist = each_group[j][0][0] - each_group[i][0][0]
+                        y_dist = each_group[j][0][1] - each_group[i][0][1]
+                        features.append(x_dist)
+                        features.append(y_dist)
+                # add extra features in case of having less vias
+                if num_vias < 4:
+                    if num_vias == 1:
+                        remain_dists = 2 * int(util.nCr(4, 2))
+                    else:
+                        remain_dists = 2 * (int(util.nCr(4, 2) - util.nCr(num_vias, 2)))
+                    temp = [0 for i in range(remain_dists)]
+                    features.extend(temp)
+                # do predict
+                dataset = np.array(features, dtype=np.int32)
+                # print(dataset)
+                X_test = dataset.reshape(1, FEATURE_LEN)
+                result = model.decision_function(X_test)
+                result = result[0]
+                print(each_group)
+                print(left_margin)
+                print(result)
+                print()
+                features = []
+            # scores[i] = result[i]
     # return the best score
-    print(scores)
-    max_score = -100
-    best_choice = -1
-    for i in range(len(candidates)):
-        if scores[i] > max_score:
-            best_choice = i
-            max_score = scores[i]
-    return candidates[best_choice], best_choice
+    # print(scores)
+    # max_score = -100
+    # best_choice = -1
+    # for i in range(len(candidates)):
+    #     if scores[i] > max_score:
+    #         best_choice = i
+    #         max_score = scores[i]
+    # return candidates[best_choice], best_choice
 
     # possible_candidates = []
     # for i in range(len(candidates)):
@@ -387,9 +407,13 @@ def get_candidates(first_via_idx, via_list, std_cells):
                 break
         # check the candidate against cell info
         if len(possible_vias) > max_vias or len(possible_vias) < min_vias:
-            candidates.append(-1)
+            # candidates.append(-1)
+            continue
         else:
-            candidates.append(possible_vias)
+            if possible_vias not in candidates:
+                candidates.append(possible_vias)
+    print(candidates)
+    print(len(candidates))
     return candidates
 
 
@@ -421,7 +445,6 @@ if __name__ == '__main__':
 
     num_to_label = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
                     4: 'NOR2X1', 5: 'OR2X1'}
-    # CELL_HEIGHT = ?
 
     # merge the data
     pickle_folder = './training_data/'
@@ -432,18 +455,41 @@ if __name__ == '__main__':
     # print(and2_data[:50])
 
     # pickle the merged data
-    set_filename = "./merged_data/selected_11_01_16_new_feats.pickle"
-    save_data_pickle(dataset, set_filename)
+    set_filename = "./merged_data/selected_11_03_16_less_feats.pickle"
+    # save_data_pickle(dataset, set_filename)
 
     # train the model
-    regr_model = train_model(dataset, 5500, num_to_label)
-    save_data_pickle(regr_model, './trained_models/logit_110116_more_feats.pickle')
+    regr_model, X_train, y_train, X_test, y_test = train_model(dataset, 5500, num_to_label)
+    save_data_pickle(regr_model, './trained_models/logit_110316_no_x.pickle')
+
+    # study the test set
+    for i in range(1, 100):
+        print(num_to_label[y_test[i:i+1][0]])
+        print(X_test[i:i+1])
+        print(regr_model.decision_function(X_test[i:i+1]))
+        print()
+
+    # make up some cases here and see the result
+    makeup = []
+    # makeup.append([3, 190, 1710, 0, 950, 1710, 0, 1140, 1330, 1, -1, -1, -1])
+    # no input/output data
+
+    # makeup.append([3, 190+400, 1710, -1, 950+400, 1710, -1, 1140+400, 1330, -1, -1, -1, -1])
+    # labels = []
+    # labels.append(3)
+    # X_makeup = np.array(makeup, dtype=np.int32)
+    # for i in range(len(makeup)):
+    #     print(num_to_label[labels[i]])
+    #     print(X_makeup[i:i+1])
+    #     print(regr_model.decision_function(X_makeup[i:i+1]))
+    #     print(num_to_label[regr_model.predict(X_makeup[i:i+1])[0]])
+    #     print()
 
     # load the model
-    # model_file = './trained_models/logit_110116.pickle'
+    # model_file = './trained_models/logit_110316_no_x.pickle'
     # regr_model = load_data_pickle(model_file)
 
-    """
+
     #######
     # PREDICTION
     # get information from DEF and LEF files
@@ -520,23 +566,21 @@ if __name__ == '__main__':
         print ('Process row', (i + 1))
         visited_vias = [] # later, make visited_vias a set to run faster
         cells_pred = []
-        via_idx = 0
+        via_idx = 3
         while via_idx < len(via1_sorted[i]):
-        # while via_idx < 1:
+        # while via_idx < 3:
             # choosing candidates
             candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
-            # for each_candidate in candidates:
-            #     print(each_candidate)
-            # via_idx += 1
             best_group, prediction = predict_cell(candidates, i, regr_model,
                                                   lef_parser, std_cell_info)
             via_idx += len(best_group)
             print (best_group)
             print (labels[prediction])
-            cells_pred.append(labels[prediction])
-            for each_via in best_group:
-                visited_vias.append(each_via)
+            # cells_pred.append(labels[prediction])
+            # for each_via in best_group:
+            #     visited_vias.append(each_via)
 
+        """
         print (cells_pred)
         print (len(cells_pred))
 
@@ -565,5 +609,4 @@ if __name__ == '__main__':
     print (total_cells)
     print (correct / total_cells * 100)
     """
-
 

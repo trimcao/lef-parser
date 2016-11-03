@@ -511,8 +511,8 @@ if __name__ == '__main__':
     predicts = []
     actuals = []
     # via_groups is only one row
-    for i in range(len(via1_sorted)):
-    # for i in range(4, 5):
+    # for i in range(len(via1_sorted)):
+    for i in range(0, 1):
         print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)

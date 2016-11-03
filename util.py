@@ -8,6 +8,13 @@ Date: August 2016
 SCALE = 2000
 import matplotlib.pyplot as plt
 import numpy as np
+import math
+
+
+def nCr(n,r):
+    f = math.factorial
+    return f(n) / f(r) / f(n-r)
+
 
 def str_to_list(s):
     """
