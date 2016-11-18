@@ -18,6 +18,9 @@ from sklearn.linear_model import LogisticRegression
 # from six.moves import cPickle as pickle
 import pickle
 import random
+import os
+import time
+import shutil
 
 def get_all_vias(def_info, via_type):
     """
@@ -77,10 +80,29 @@ def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
     :param vias: a list containing all vias on a row
     :return: void
     """
-    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
     # get the corners for the window
     corners = [left_pt]
     corners.append((left_pt[0] + width, left_pt[1] + height))
+    # compose the output file name
+    out_folder = './images/'
+    # current_time = time.strftime('%H%M%d%m%Y')
+    pos = (str(corners[0][0]) + '_' + str(corners[0][1]) + '_' +
+           str(corners[1][0]) + '_' + str(corners[1][1]))
+    # out_file = out_folder + pos
+    out_file = out_folder
+    # out_file += str(corners[0][0])
+    out_file += pos
+    if macro:
+        out_file += '_' + macro
+    if comp:
+        out_file += '_' + comp
+    # current_time = time.strftime('%H%M%S%d%m%Y')
+    # out_file += '_' + current_time
+
+    if os.path.exists(out_file + '.png'):
+        return out_file + '.png'
+
+    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
     # scale the axis of the subplot
     # draw the window boundary
     # scaled_pts = rect_to_polygon(corners)
@@ -104,22 +126,6 @@ def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
     plt.axis(axis)
     plt.axis('off')
     plt.gca().set_aspect('equal', adjustable='box')
-    # compose the output file name
-    out_folder = './images/'
-    # current_time = time.strftime('%H%M%d%m%Y')
-    pos = (str(corners[0][0]) + '_' + str(corners[0][1]) + '_' +
-                str(corners[1][0]) + '_' + str(corners[1][1]))
-    # out_file = out_folder + pos
-    out_file = out_folder
-    # out_file += str(corners[0][0])
-    out_file += pos
-    if macro:
-        out_file += '_' + macro
-    if comp:
-        out_file += '_' + comp
-    current_time = time.strftime('%H%M%S%d%m%Y')
-    out_file += '_' + current_time
-    # plt.savefig(out_file, transparent=True)
     plt.savefig(out_file)
     # plt.show()
     plt.close('all')
@@ -180,7 +186,6 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
             X_test = dataset.reshape(dataset.shape[0], img_shape)
             result = model.decision_function(X_test)
             result = result[0]
-            # print (result)
             # check for result
             if result[i] == max(result):
                 return candidates[i], i
@@ -208,7 +213,6 @@ def sorted_components(layout_area, row_height, comps):
     for each_row in rows:
         each_row.sort(key = lambda x: x.placed[0])
     return rows
-
 
 
 
@@ -334,11 +338,29 @@ def get_candidates(first_via_idx, via_list, std_cells):
     return candidates
 
 
+def get_inputs_outputs(def_info):
+    """
+    Method to get all inputs and outputs nets from a DEF file.
+    :param def_info: def info (already parsed).
+    :return: inputs and outputs
+    """
+    pins = def_parser.pins.pins
+    inputs = []
+    outputs = []
+    for each_pin in pins:
+        pin_name = each_pin.name
+        direction = each_pin.direction.lower()
+        if direction == 'input':
+            inputs.append(pin_name)
+        elif direction == 'output':
+            outputs.append(pin_name)
+    return inputs, outputs
 
 
 # Main Class
 if __name__ == '__main__':
-    def_path = './libraries/layout_freepdk45/c432.def'
+    start_time = time.time()
+    def_path = './libraries/layout_freepdk45/c3540.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -363,45 +385,16 @@ if __name__ == '__main__':
 
     num_rows = len(components)
 
-    # source/sink list for vias
-    # -1 = don't know, 0 = sink, 1 = source
-    # source_sink = [-1 for i in range(len(all_via1))]
-    # print (net_to_via['n192'])
-    #
-    # # inputs and outputs of the c432 design
-    # inputs = 'N1, N4, N8, N11, N14, N17, N21, N24, N27, N30, N34, N37, N40, N43, N47, '
-    # inputs += 'N50, N53, N56, N60, N63, N66, N69, N73, N76, N79, N82, N86, N89, N92, '
-    # inputs += 'N95, N99, N102, N105, N108, N112, N115'
-    # outputs = 'N223, N329, N370, N421, N430, N431, N432'
-    #
-    # inputs = inputs.split(', ')
-    # outputs = outputs.split(', ')
-    #
-    # # assign source/sink to inputs and outputs
-    # for each_in in inputs:
-    #     for each_via in net_to_via[each_in]:
-    #         source_sink[each_via] = 0
-    # for each_out in outputs:
-    #     for each_via in net_to_via[each_out]:
-    #         source_sink[each_via] = 1
-
-    ####
-    # test remove the redundant via in row 4th of c432
-    # we cannot check redundant vias via adjacent vias
-    # maybe I do not implement this correctly
-    # probably this is not a good idea
-
-    # row4 = via1_sorted[3]
-    # print ("length of row4 before: ", len(row4))
-    # row4_new = []
-    # for i in range(1, len(row4)):
-    #     if row4[i][3] != row4[i - 1][3]:
-    #         row4_new.append(row4[i - 1])
-    # row4_new.append(row4[-1])
-    # print ("length of row4 after: ", len(row4_new))
-    #
-    # via1_sorted[3] = row4_new
-
+    # add inputs and outputs from the design to via info
+    inputs, outputs = get_inputs_outputs(def_parser)
+    # print(inputs)
+    # print(outputs)
+    for each_in in inputs:
+        for each_via in nets_vias_dict[each_in]:
+            each_via[3] = 0
+    for each_out in outputs:
+        for each_via in nets_vias_dict[each_out]:
+            each_via[3] = 1
 
     ###############
     # DO PREDICTION
@@ -443,8 +436,8 @@ if __name__ == '__main__':
     predicts = []
     actuals = []
     # via_groups is only one row
-    # for i in range(len(via1_sorted)):
-    for i in range(0, 1):
+    for i in range(len(via1_sorted)):
+    # for i in range(0, 1):
         print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
@@ -519,6 +512,14 @@ if __name__ == '__main__':
 
         print ()
 
-    print (correct)
-    print (total_cells)
-    print (correct / total_cells * 100)
+    print ("\nTotal number of cells: ", total_cells)
+    print ("Number of correct cells predicted: ", correct)
+    print ("Accuracy rate (%): ", correct / total_cells * 100)
+    # print the execution time
+    print("\n--- Execution time:")
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+    # remove images used
+    shutil.rmtree("./images")
+    if not os.path.exists("./images"):
+        os.makedirs("./images")
