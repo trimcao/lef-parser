@@ -373,17 +373,21 @@ if __name__ == '__main__':
     # print (CELL_HEIGHT)
     print ("Process file:", def_path)
     all_via1, net_to_via = get_all_vias(def_parser, via_type="M2_M1_via")
-    # print (all_via1)
+
+    # build the net_via dictionary
+    nets = def_parser.nets.nets
+    # initialize the nets_via_dict
+    nets_vias_dict = {}
+    for net in nets:
+        net_name = net.name
+        nets_vias_dict[net_name] = []
+    # add vias to nets_dict
+    for each_via in all_via1:
+        net = each_via[2]
+        nets_vias_dict[net].append(each_via)
 
     # sort the vias by row
     via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
-
-    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
-
-    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
-
-    num_rows = len(components)
 
     # add inputs and outputs from the design to via info
     inputs, outputs = get_inputs_outputs(def_parser)
@@ -395,6 +399,13 @@ if __name__ == '__main__':
     for each_out in outputs:
         for each_via in nets_vias_dict[each_out]:
             each_via[3] = 1
+
+    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
+
+    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                   def_parser.components.comps)
+
+    num_rows = len(components)
 
     ###############
     # DO PREDICTION
@@ -455,38 +466,6 @@ if __name__ == '__main__':
             cells_pred.append(labels[prediction])
             for each_via in best_group:
                 visited_vias.append(each_via)
-
-        # for each_via_group in via_groups:
-            # check source/sink validity for each candidate in the via_group
-            # valid_via_group = check_via_group(each_via_group, source_sink)
-
-            # first_via = each_via_group[0][0]
-            # print (first_via)
-            # if not first_via in visited_vias:
-            #     best_group, prediction = predict_cell(each_via_group, i,
-            #                                           logit_model, lef_parser)
-            #     print (best_group)
-            #     print (labels[prediction])
-            #     cells_pred.append(labels[prediction])
-            #     for each_via in best_group:
-            #         visited_vias.append(each_via)
-            #     # add source/sink to via
-            #     # if we have a source, then all other vias with the same net are sink
-            #     for each_via in best_group[:-1]:
-            #         via_id = each_via[2]
-            #         if source_sink[via_id] == -1:
-            #             source_sink[each_via[2]] = 0
-            #     # assign the output a source node
-            #     last_via = best_group[-1]
-            #     last_via_id = last_via[2]
-            #     if source_sink[via_id] == -1:
-            #         source_sink[each_via[2]] = 1
-            #     # update other nodes in the same net as sink
-            #     source_net = last_via[3]
-            #     vias_in_source_net = net_to_via[source_net]
-            #     for via_id in vias_in_source_net:
-            #         if via_id != last_via_id:
-            #             source_sink[via_id] = 0
 
         print (cells_pred)
         print (len(cells_pred))
