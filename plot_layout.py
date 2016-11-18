@@ -210,75 +210,6 @@ def sorted_components(layout_area, row_height, comps):
     return rows
 
 
-def predict_row():
-    # We can load the trained model
-    pickle_filename = "./trained_models/logit_model_100916_2.pickle"
-    try:
-        with open(pickle_filename, 'rb') as f:
-            logit_model = pickle.load(f)
-    except Exception as e:
-        print('Unable to read data from', pickle_filename, ':', e)
-
-    labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
-              5: 'or2'}
-    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
-                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
-
-    # process
-    # print the sorted components
-    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
-    correct = 0
-    total_cells = 0
-    predicts = []
-    actuals = []
-    # via_groups is only one row
-    # for i in range(len(via1_sorted)):
-    for i in range(3, 4):
-        via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
-        visited_vias = [] # later, make visited_vias a set to run faster
-        cells_pred = []
-        for each_via_group in via_groups:
-            first_via = each_via_group[0][0]
-            # print (first_via)
-            if not first_via in visited_vias:
-                best_group, prediction = predict_cell(each_via_group, i,
-                                                      logit_model, lef_parser)
-                # print (best_group)
-                # print (labels[prediction])
-                cells_pred.append(labels[prediction])
-                for each_via in best_group:
-                    visited_vias.append(each_via)
-                    # print (best_group)
-                    # print (labels[prediction])
-
-        print (cells_pred)
-        print (len(cells_pred))
-
-        actual_comp = []
-        actual_macro = []
-        for each_comp in components[i]:
-            actual_comp.append(cell_labels[each_comp.macro])
-            actual_macro.append(each_comp.macro)
-        print (actual_comp)
-        print (len(actual_comp))
-
-        # check predictions vs actual cells
-        # for i in range(len(actual_comp)):
-        #     if cells_pred[i] == actual_comp[i]:
-        #         correct += 1
-        num_correct, num_cells = predict_score(cells_pred, actual_comp)
-
-        correct += num_correct
-        total_cells += num_cells
-        predicts.append(cells_pred)
-        actuals.append(actual_comp)
-
-        print ()
-
-    print (correct)
-    print (total_cells)
-    print (correct / total_cells * 100)
 
 
 def predict_score(predicts, actuals):
@@ -340,6 +271,7 @@ def plot_cell_w_vias():
             print (cell_vias)
             print (via_idx)
     print('Finished!')
+
 
 def check_via_group(via_group, source_sink):
     """

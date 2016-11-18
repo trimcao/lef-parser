@@ -155,53 +155,57 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
             features = []
             each_group = candidates[i]
             # width = std_cells[2]
-            # left_margin = std_cells[i][-1]
-            for left_margin in range(50, 800, 50):
-                left_pt = [each_group[0][0][0] - left_margin, CELL_HEIGHT * row]
-                # width = each_group[-1][0][0] - left_pt[0] + margin
-                num_vias = len(each_group)
-                features.append(num_vias)
-                x_bound = left_pt[0]
-                y_bound = left_pt[1]
-                # NOTE: some cell has 4 vias
-                # We suppose maximum vias in a cell is 4
-                for each_via in each_group:
-                    x_loc = each_via[0][0] - x_bound
-                    y_loc = each_via[0][1] - y_bound
-                    features.append(x_loc)
-                    features.append(y_loc)
-                    # add via type
-                    features.append(each_via[3])
-                # if there are only two vias, then there are no via3
-                if num_vias < 4:
-                    temp = [-1 for i in range((4 - num_vias) * 3)]
-                    features.extend(temp)
-                # add the distance between vias
-                for i in range(num_vias - 1):
-                    for j in range(i + 1, num_vias):
-                        x_dist = each_group[j][0][0] - each_group[i][0][0]
-                        y_dist = each_group[j][0][1] - each_group[i][0][1]
-                        features.append(x_dist)
-                        features.append(y_dist)
-                # add extra features in case of having less vias
-                if num_vias < 4:
-                    if num_vias == 1:
-                        remain_dists = 2 * int(util.nCr(4, 2))
-                    else:
-                        remain_dists = 2 * (int(util.nCr(4, 2) - util.nCr(num_vias, 2)))
-                    temp = [0 for i in range(remain_dists)]
-                    features.extend(temp)
-                # do predict
-                dataset = np.array(features, dtype=np.int32)
-                # print(dataset)
-                X_test = dataset.reshape(1, FEATURE_LEN)
-                result = model.decision_function(X_test)
-                result = result[0]
-                print(each_group)
-                print(left_margin)
-                print(result)
-                print()
-                features = []
+            left_margin = std_cells[i][-1]
+            # for left_margin in range(50, 800, 50):
+            left_pt = [each_group[0][0][0] - left_margin, CELL_HEIGHT * row]
+            # width = each_group[-1][0][0] - left_pt[0] + margin
+            num_vias = len(each_group)
+            features.append(num_vias)
+            x_bound = left_pt[0]
+            y_bound = left_pt[1]
+            # NOTE: some cell has 4 vias
+            # We suppose maximum vias in a cell is 4
+            for each_via in each_group:
+                x_loc = each_via[0][0] - x_bound
+                y_loc = each_via[0][1] - y_bound
+                # features.append(x_loc)
+                features.append(y_loc)
+                # add via type
+                features.append(each_via[3])
+            # if there are only two vias, then there are no via3
+            if num_vias < 4:
+                temp = [-1 for i in range((4 - num_vias) * 2)]
+                features.extend(temp)
+            # add the distance between vias
+            for i in range(num_vias - 1):
+                for j in range(i + 1, num_vias):
+                    x_dist = each_group[j][0][0] - each_group[i][0][0]
+                    y_dist = each_group[j][0][1] - each_group[i][0][1]
+                    features.append(x_dist)
+                    features.append(y_dist)
+            # add extra features in case of having less vias
+            if num_vias < 4:
+                if num_vias == 1:
+                    remain_dists = 2 * int(util.nCr(4, 2))
+                else:
+                    remain_dists = 2 * (int(util.nCr(4, 2) - util.nCr(num_vias, 2)))
+                temp = [0 for i in range(remain_dists)]
+                features.extend(temp)
+            # do predict
+            dataset = np.array(features, dtype=np.int32)
+            # print(dataset)
+            X_test = dataset.reshape(1, FEATURE_LEN)
+            result = model.decision_function(X_test)
+            result = result[0]
+            # print(each_group)
+            # print(left_margin)
+            print(labels[i])
+            print(features)
+            print(result)
+            # print()
+            features = []
+            if result[i] == max(result):
+                return candidates[i], i
             # scores[i] = result[i]
     # return the best score
     # print(scores)
@@ -407,8 +411,8 @@ def get_candidates(first_via_idx, via_list, std_cells):
                 break
         # check the candidate against cell info
         if len(possible_vias) > max_vias or len(possible_vias) < min_vias:
-            # candidates.append(-1)
-            continue
+            candidates.append(-1)
+            # continue
         else:
             if possible_vias not in candidates:
                 candidates.append(possible_vias)
@@ -574,8 +578,8 @@ if __name__ == '__main__':
             best_group, prediction = predict_cell(candidates, i, regr_model,
                                                   lef_parser, std_cell_info)
             via_idx += len(best_group)
-            print (best_group)
-            print (labels[prediction])
+            print(best_group)
+            print(labels[prediction])
             # cells_pred.append(labels[prediction])
             # for each_via in best_group:
             #     visited_vias.append(each_via)
