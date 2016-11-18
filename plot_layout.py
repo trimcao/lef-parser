@@ -14,41 +14,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import img_util
-from sklearn.linear_model import LogisticRegression
-# from six.moves import cPickle as pickle
 import pickle
 import random
 import os
 import time
 import shutil
 
-# def get_all_vias(def_info, via_type):
-#     """
-#     method to get all vias of the via_type and put them in a list
-#     :param def_info: DEF data
-#     :param via_type: via type
-#     :return: a list of all vias
-#     """
-#     vias = []
-#     net_to_via = {}
-#     # process the nets
-#     num_vias = 0
-#     for net in def_info.nets.nets:
-#         net_to_via[net.name] = []
-#         for route in net.routed:
-#             if route.end_via != None:
-#                 # check for the via type of the end_via
-#                 if route.end_via[:len(via_type)] == via_type:
-#                     via_loc = route.end_via_loc
-#                     via_name = route.end_via
-#                     via_info = (via_loc, via_name, num_vias, net.name)
-#                     # add a via to the vias list
-#                     vias.append(via_info)
-#                     # net_to_via dict will point to via index
-#                     net_to_via[net.name].append(num_vias)
-#                     num_vias += 1
-#     #print (result_dict)
-#     return vias, net_to_via
 
 def sort_vias_by_row(layout_area, row_height, vias):
     """
@@ -213,7 +184,6 @@ def sorted_components(layout_area, row_height, comps):
     for each_row in rows:
         each_row.sort(key = lambda x: x.placed[0])
     return rows
-
 
 
 def predict_score(predicts, actuals):
@@ -469,8 +439,6 @@ if __name__ == '__main__':
     print ("Process file:", def_path)
     all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
 
-    print(all_via1[:10])
-
     # build the net_via dictionary
     nets = def_parser.nets.nets
     # initialize the nets_via_dict
@@ -499,7 +467,6 @@ if __name__ == '__main__':
 
     components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
                                    def_parser.components.comps)
-
     num_rows = len(components)
 
     ###############
@@ -546,8 +513,8 @@ if __name__ == '__main__':
     actuals = []
     cells_reco = [] # a list of recovered cells
     # via_groups is only one row
-    # for i in range(len(via1_sorted)):
-    for i in range(0, 1):
+    for i in range(len(via1_sorted)):
+    # for i in range(0, 1):
         print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
@@ -576,16 +543,6 @@ if __name__ == '__main__':
             recover.append(macro_name)
             recover.append(input_nets)
             recover.append(output_net)
-            # recover['name'] = macro_name
-            # recover['A'] = input_nets[0]
-            # recover['Y'] = output_net
-            # if num_pins == 3:
-            #     recover['B'] = input_nets[1]
-            # if num_pins == 3:
-            #     print(recover['name'], 'A:', recover['A'], 'B:', recover['B'], 'Y:', recover['Y'])
-            # else:
-            #     print(recover['name'], 'A:', recover['A'], 'Y:', recover['Y'])
-            # print(recover)
             cells_reco.append(recover)
 
             via_idx += len(best_group)
@@ -606,17 +563,11 @@ if __name__ == '__main__':
         print (actual_comp)
         print (len(actual_comp))
 
-        # check predictions vs actual cells
-        # for i in range(len(actual_comp)):
-        #     if cells_pred[i] == actual_comp[i]:
-        #         correct += 1
         num_correct, num_cells = predict_score(cells_pred, actual_comp)
-
         correct += num_correct
         total_cells += num_cells
         predicts.append(cells_pred)
         actuals.append(actual_comp)
-
         print ()
 
     print ("\nTotal number of cells: ", total_cells)
