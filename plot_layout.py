@@ -22,33 +22,33 @@ import os
 import time
 import shutil
 
-def get_all_vias(def_info, via_type):
-    """
-    method to get all vias of the via_type and put them in a list
-    :param def_info: DEF data
-    :param via_type: via type
-    :return: a list of all vias
-    """
-    vias = []
-    net_to_via = {}
-    # process the nets
-    num_vias = 0
-    for net in def_info.nets.nets:
-        net_to_via[net.name] = []
-        for route in net.routed:
-            if route.end_via != None:
-                # check for the via type of the end_via
-                if route.end_via[:len(via_type)] == via_type:
-                    via_loc = route.end_via_loc
-                    via_name = route.end_via
-                    via_info = (via_loc, via_name, num_vias, net.name)
-                    # add a via to the vias list
-                    vias.append(via_info)
-                    # net_to_via dict will point to via index
-                    net_to_via[net.name].append(num_vias)
-                    num_vias += 1
-    #print (result_dict)
-    return vias, net_to_via
+# def get_all_vias(def_info, via_type):
+#     """
+#     method to get all vias of the via_type and put them in a list
+#     :param def_info: DEF data
+#     :param via_type: via type
+#     :return: a list of all vias
+#     """
+#     vias = []
+#     net_to_via = {}
+#     # process the nets
+#     num_vias = 0
+#     for net in def_info.nets.nets:
+#         net_to_via[net.name] = []
+#         for route in net.routed:
+#             if route.end_via != None:
+#                 # check for the via type of the end_via
+#                 if route.end_via[:len(via_type)] == via_type:
+#                     via_loc = route.end_via_loc
+#                     via_name = route.end_via
+#                     via_info = (via_loc, via_name, num_vias, net.name)
+#                     # add a via to the vias list
+#                     vias.append(via_info)
+#                     # net_to_via dict will point to via index
+#                     net_to_via[net.name].append(num_vias)
+#                     num_vias += 1
+#     #print (result_dict)
+#     return vias, net_to_via
 
 def sort_vias_by_row(layout_area, row_height, vias):
     """
@@ -357,10 +357,22 @@ def get_inputs_outputs(def_info):
     return inputs, outputs
 
 
+def recover_netlist(design, inputs, outputs, recovered_cells):
+    """
+    Method to create a netlist from predicted cells
+    :param design: design name
+    :param inputs: input pins of the design
+    :param outputs: output pins of the design
+    :param recovered_cells: recovered cells with input nets and output nets
+    :return: recovered netlist file name
+    """
+
+
+
 # Main Class
 if __name__ == '__main__':
     start_time = time.time()
-    def_path = './libraries/layout_freepdk45/c3540.def'
+    def_path = './libraries/layout_freepdk45/c432.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -368,11 +380,14 @@ if __name__ == '__main__':
     lef_file = "./libraries/FreePDK45/gscl45nm.lef"
     lef_parser = LefParser(lef_file)
     lef_parser.parse()
+    macro_dict = lef_parser.macro_dict
 
     CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
     # print (CELL_HEIGHT)
     print ("Process file:", def_path)
-    all_via1, net_to_via = get_all_vias(def_parser, via_type="M2_M1_via")
+    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
+
+    print(all_via1[:10])
 
     # build the net_via dictionary
     nets = def_parser.nets.nets
@@ -391,8 +406,6 @@ if __name__ == '__main__':
 
     # add inputs and outputs from the design to via info
     inputs, outputs = get_inputs_outputs(def_parser)
-    # print(inputs)
-    # print(outputs)
     for each_in in inputs:
         for each_via in nets_vias_dict[each_in]:
             each_via[3] = 0
@@ -420,6 +433,9 @@ if __name__ == '__main__':
 
     labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
               5: 'or2'}
+    macro_from_labels = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
+                         4: 'NOR2X1', 5: 'OR2X1'}
+
     cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
                    'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
 
@@ -446,9 +462,10 @@ if __name__ == '__main__':
     total_cells = 0
     predicts = []
     actuals = []
+    cells_reco = [] # a list of recovered cells
     # via_groups is only one row
-    for i in range(len(via1_sorted)):
-    # for i in range(0, 1):
+    # for i in range(len(via1_sorted)):
+    for i in range(0, 1):
         print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
@@ -460,6 +477,35 @@ if __name__ == '__main__':
             candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
             best_group, prediction = predict_cell(candidates, i, logit_model,
                                                   lef_parser, std_cell_info)
+            # recover the cell information
+            macro_name = macro_from_labels[prediction]
+            macro_info = macro_dict[macro_from_labels[prediction]]
+            num_pins = len(macro_info.info["PIN"]) - 2
+            # NOTE: we assume inputs are A, B and output is Y
+            # for each_pin in pins:
+            #     print(each_pin.name)
+            recover = []
+            output_net = best_group[-1][2]
+            input_nets = []
+            for each_via in best_group:
+                if each_via[2] != output_net:
+                    input_nets.append(each_via[2])
+            # NOTE: the following lines only work for 2-pin and 3-pin cell
+            recover.append(macro_name)
+            recover.append(input_nets)
+            recover.append(output_net)
+            # recover['name'] = macro_name
+            # recover['A'] = input_nets[0]
+            # recover['Y'] = output_net
+            # if num_pins == 3:
+            #     recover['B'] = input_nets[1]
+            # if num_pins == 3:
+            #     print(recover['name'], 'A:', recover['A'], 'B:', recover['B'], 'Y:', recover['Y'])
+            # else:
+            #     print(recover['name'], 'A:', recover['A'], 'Y:', recover['Y'])
+            print(recover)
+            cells_reco.append(recover)
+
             via_idx += len(best_group)
             # print (best_group)
             # print (labels[prediction])
@@ -502,3 +548,11 @@ if __name__ == '__main__':
     shutil.rmtree("./images")
     if not os.path.exists("./images"):
         os.makedirs("./images")
+
+    # count the time to generate the netlist separately
+
+    # write the recovered verilog netlist
+    print(inputs)
+    print(outputs)
+    print(cells_reco)
+    recover_netlist(design, inputs, outputs, cells_reco)
