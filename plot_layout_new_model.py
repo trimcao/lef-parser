@@ -73,7 +73,7 @@ def plot_window(left_pt, width, height, vias, lef_data, macro=None, comp=None):
     if os.path.exists(out_file + '.png'):
         return out_file + '.png'
 
-    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
+    plt.figure(figsize=(1, 1.6), dpi=80, frameon=False)
     # scale the axis of the subplot
     # draw the window boundary
     # scaled_pts = rect_to_polygon(corners)
@@ -134,8 +134,8 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
     :return: a tuple (chosen via group, predicted cell name)
     """
     margin = 350
-    img_width = 200
-    img_height = 400
+    img_width = 126
+    img_height = 66
     img_shape = img_width * img_height
     possible_candidates = []
     for i in range(len(candidates)):
@@ -143,7 +143,9 @@ def predict_cell(candidates, row, model, lef_data, std_cells):
         #                      dtype=np.float32)
         if candidates[i] != -1:
             possible_candidates.append(i)
-            dataset = np.ndarray(shape=(1, img_height, img_width),
+            # dataset = np.ndarray(shape=(1, img_height, img_width),
+            #                      dtype=np.float32)
+            dataset = np.ndarray(shape=(1, img_width, img_height),
                                  dtype=np.float32)
             each_group = candidates[i]
             left_pt = [each_group[0][0][0] - margin, CELL_HEIGHT * row]
@@ -346,6 +348,14 @@ def recover_netlist(def_info, inputs, outputs, recovered_cells):
     # print(wires)
     # print(len(wires))
 
+    # save the cells_reco for later inspection
+    # filename = './recovered/' + design + '.pickle'
+    # try:
+    #     with open(filename, 'wb') as f:
+    #         pickle.dump(cells_reco, f, pickle.HIGHEST_PROTOCOL)
+    # except Exception as e:
+    #     print('Unable to save data to', filename, ':', e)
+
     ## dd/mm/yyyy format
     date = time.strftime("%m/%d/%Y %H:%M:%S")
     s = '#############################\n'
@@ -424,7 +434,7 @@ def recover_netlist(def_info, inputs, outputs, recovered_cells):
 # Main Class
 if __name__ == '__main__':
     start_time = time.time()
-    def_path = './libraries/layout_yujie/c2670_gscl45nm_tri_routing_layer6.def'
+    def_path = './libraries/layout_freepdk45/c432.def'
     def_parser = DefParser(def_path)
     def_parser.parse()
     scale = def_parser.scale
@@ -439,6 +449,8 @@ if __name__ == '__main__':
     print ("Process file:", def_path)
     all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
 
+    # create the netlist on-the-fly, for each net, 0 = input only, 1 = input or output
+    netlist_fly = dict()
     # build the net_via dictionary
     nets = def_parser.nets.nets
     # initialize the nets_via_dict
@@ -446,6 +458,8 @@ if __name__ == '__main__':
     for net in nets:
         net_name = net.name
         nets_vias_dict[net_name] = []
+        # initialize all the nets = 1
+        netlist_fly[net_name] = 1
     # add vias to nets_dict
     for each_via in all_via1:
         net = each_via[2]
@@ -457,6 +471,8 @@ if __name__ == '__main__':
     # add inputs and outputs from the design to via info
     inputs, outputs = get_inputs_outputs(def_parser)
     for each_in in inputs:
+        # print(each_in)
+        netlist_fly[each_in] = 0
         for each_via in nets_vias_dict[each_in]:
             each_via[3] = 0
     for each_out in outputs:
@@ -473,7 +489,7 @@ if __name__ == '__main__':
     # DO PREDICTION
     # predict_row()
     # We can load the trained model
-    pickle_filename = "./trained_models/logit_model_100916_2.pickle"
+    pickle_filename = "./trained_models/logit_model_111816.pickle"
     try:
         with open(pickle_filename, 'rb') as f:
             logit_model = pickle.load(f)
@@ -512,6 +528,7 @@ if __name__ == '__main__':
     predicts = []
     actuals = []
     cells_reco = [] # a list of recovered cells
+    # vias_reco = [] # a list of vias in the predicted cell, for debug purpose
     # via_groups is only one row
     for i in range(len(via1_sorted)):
     # for i in range(0, 1):
@@ -534,16 +551,39 @@ if __name__ == '__main__':
             # for each_pin in pins:
             #     print(each_pin.name)
             recover = []
-            output_net = best_group[-1][2]
             input_nets = []
-            for each_via in best_group:
-                if each_via[2] != output_net:
-                    input_nets.append(each_via[2])
+            # print(best_group)
+            for j in range(len(best_group) - 1, -1, -1):
+                net_name = best_group[j][2]
+                if netlist_fly[net_name] == 1:
+                    output_net = net_name
+                    netlist_fly[net_name] = 0
+                    break
+            for j in range(len(best_group)):
+                net_name = best_group[j][2]
+                if net_name != output_net and len(input_nets) + 1 < num_pins:
+                    input_nets.append(net_name)
+
+            # old way to choose output and input_nets
+            # output_net = best_group[-1][2]
+            # input_nets = []
+            # for each_via in best_group:
+            #     if each_via[2] != output_net:
+            #         input_nets.append(each_via[2])
+
+            # corner case: same nets for some or all vias in the group
+            # in this case, actually we can ignore the result
+            # num_inputs = len(input_nets)
+            # for i in range(num_inputs, num_pins - 1):
+            #     input_nets.append(best_group[i][2])
+
             # NOTE: the following lines only work for 2-pin and 3-pin cell
-            recover.append(macro_name)
-            recover.append(input_nets)
-            recover.append(output_net)
-            cells_reco.append(recover)
+            if len(input_nets) + 1 == num_pins:
+                recover.append(macro_name)
+                recover.append(input_nets)
+                recover.append(output_net)
+                cells_reco.append(recover)
+            # vias_reco.append((best_group, macro_from_labels[prediction]))
 
             via_idx += len(best_group)
             # print (best_group)
@@ -588,3 +628,11 @@ if __name__ == '__main__':
     recover_netlist(def_parser, inputs, outputs, cells_reco)
     print("\n--- Generate netlist time:")
     print("--- %s seconds ---" % (time.time() - start_time))
+
+    # debug = (cells_reco, vias_reco)
+    # filename = './recovered/c5315_debug' + '.pickle'
+    # try:
+    #     with open(filename, 'wb') as f:
+    #         pickle.dump(debug, f, pickle.HIGHEST_PROTOCOL)
+    # except Exception as e:
+    #     print('Unable to save data to', filename, ':', e)

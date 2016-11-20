@@ -1,9 +1,11 @@
 from def_parser import *
+import pickle
 import time
 
 def recover_netlist(def_info, inputs, outputs, recovered_cells):
     """
     Method to create a netlist from predicted cells
+    :param def_info: information from the DEF file
     :param inputs: input pins of the design
     :param outputs: output pins of the design
     :param recovered_cells: recovered cells with input nets and output nets
@@ -18,6 +20,14 @@ def recover_netlist(def_info, inputs, outputs, recovered_cells):
     wires = nets - io
     # print(wires)
     # print(len(wires))
+
+    # save the cells_reco for later inspection
+    # filename = './recovered/' + design + '.pickle'
+    # try:
+    #     with open(filename, 'wb') as f:
+    #         pickle.dump(cells_reco, f, pickle.HIGHEST_PROTOCOL)
+    # except Exception as e:
+    #     print('Unable to save data to', filename, ':', e)
 
     ## dd/mm/yyyy format
     date = time.strftime("%m/%d/%Y %H:%M:%S")
@@ -84,12 +94,12 @@ def recover_netlist(def_info, inputs, outputs, recovered_cells):
         s += ' );\n'
 
     # write to an output file
-    folder = './recovered/'
-    filename = design + '_recovered' + '.v'
-    print('Writing recovered netlist file...')
-    f = open(folder + filename, mode="w+")
-    f.write(s)
-    f.close()
+    # folder = './recovered/'
+    # filename = design + '_recovered' + '.v'
+    # print('Writing recovered netlist file...')
+    # f = open(folder + filename, mode="w+")
+    # f.write(s)
+    # f.close()
     print('Writing done.')
     return filename
 
@@ -99,7 +109,32 @@ outputs = ['N223', 'N329', 'N370', 'N421', 'N430', 'N431', 'N432']
 cells_reco = [['AND2X1', ['N8', 'n277'], 'n305'], ['INVX1', ['n305'], 'n195'], ['AND2X1', ['n170', 'n195'], 'n303'], ['INVX1', ['n304'], 'n170'], ['INVX1', ['n303'], 'n216'], ['OR2X1', ['n264', 'N8'], 'n353'], ['INVX1', ['n302'], 'n264'], ['OR2X1', ['n264', 'n216'], 'n301'], ['AND2X1', ['n254', 'n302'], 'n350'], ['INVX1', ['n301'], 'n217'], ['AND2X1', ['n353', 'n363'], 'n388'], ['AND2X1', ['n277', 'n363'], 'n361'], ['AND2X1', ['n183', 'n362'], 'n360'], ['INVX1', ['N105'], 'n362'], ['AND2X1', ['n181', 'n203'], 'n338'], ['OR2X1', ['n258', 'N99'], 'n363'], ['OR2X1', ['n258', 'n214'], 'n354'], ['AND2X1', ['N99', 'n277'], 'n294'], ['INVX1', ['n354'], 'n180'], ['OR2X1', ['n180', 'n212'], 'n349'], ['INVX1', ['n355'], 'n212'], ['OR2X1', ['n255', 'n213'], 'n355'], ['OR2X1', ['n255', 'N86'], 'n359'], ['AND2X1', ['n182', 'n358'], 'n356'], ['INVX1', ['n356'], 'n213'], ['AND2X1', ['N86', 'n277'], 'n312'], ['INVX1', ['N92'], 'n358'], ['AND2X1', ['n171', 'n196'], 'n309'], ['AND2X1', ['n309', 'n310'], 'n295']]
 
 design = 'c432'
-def_path = './libraries/layout_freepdk45/c432.def'
+def_path = './libraries/layout_freepdk45/b14_1.def'
 def_parser = DefParser(def_path)
 def_parser.parse()
+
+all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
+
+# build the net_via dictionary
+nets = def_parser.nets.nets
+# initialize the nets_via_dict
+nets_vias_dict = {}
+for net in nets:
+    net_name = net.name
+    nets_vias_dict[net_name] = []
+# add vias to nets_dict
+for each_via in all_via1:
+    net = each_via[2]
+    nets_vias_dict[net].append(each_via)
+
+filename = './recovered/b14_1_C_debug.pickle'
+try:
+    with open(filename, 'rb') as f:
+        debug = pickle.load(f)
+except Exception as e:
+    print('Unable to read data from', filename, ':', e)
+
+cells_reco = debug[0]
+vias_reco = debug[1]
 recover_netlist(def_parser, inputs, outputs, cells_reco)
+

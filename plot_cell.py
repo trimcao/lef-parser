@@ -186,7 +186,7 @@ def plot_component2(comp_name, lef_data, def_data, macro_via1_dict):
     vias_draw.sort(key=lambda x: x[0][0])
     # print (vias_draw)
     # NOTE: figsize(6, 9) can be changed to adapt to other cell size
-    plt.figure(figsize=(3, 5), dpi=80, frameon=False)
+    plt.figure(figsize=(1, 1.6), dpi=80, frameon=False)
     margin = 350
     left_pt = [vias_draw[0][0][0] - margin, bottom_left_pt[1]]
     width = vias_draw[-1][0][0] - left_pt[0] + margin
@@ -225,7 +225,7 @@ def plot_component2(comp_name, lef_data, def_data, macro_via1_dict):
 # Main Class
 if __name__ == '__main__':
     # read_path = './libraries/DEF/c1908_tri_no_metal1.def'
-    read_path = './libraries/layout_freepdk45/c1355.def'
+    read_path = './libraries/layout_freepdk45/c3540.def'
     def_parser = DefParser(read_path)
     def_parser.parse()
 
