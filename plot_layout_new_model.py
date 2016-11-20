@@ -431,6 +431,26 @@ def recover_netlist(def_info, inputs, outputs, recovered_cells):
     return filename
 
 
+def closest_via_pair_y(via_group):
+    """
+    Method to find the closest pair of via based on y-coordinate.
+    :param via_group: a list of vias
+    :return: the pair of vias that are closest based on y-coordinate.
+    """
+    closest_pair = 0 # initialize the answer
+    min_dist = float('inf')
+    for i in range(len(via_group)):
+        for j in range(i + 1, len(via_group)):
+            y_i = via_group[i][0][1]
+            y_j = via_group[j][0][1]
+            if abs(y_i - y_j) < min_dist:
+                min_dist = abs(y_i - y_j)
+                closest_pair = (via_group[i], via_group[j])
+    return closest_pair
+
+
+
+
 # Main Class
 if __name__ == '__main__':
     start_time = time.time()
@@ -530,8 +550,8 @@ if __name__ == '__main__':
     cells_reco = [] # a list of recovered cells
     # vias_reco = [] # a list of vias in the predicted cell, for debug purpose
     # via_groups is only one row
-    for i in range(len(via1_sorted)):
-    # for i in range(0, 1):
+    # for i in range(len(via1_sorted)):
+    for i in range(0, 1):
         print ('Process row', (i + 1))
         # each via group in via_groups consist of two candidates
         # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
@@ -543,6 +563,9 @@ if __name__ == '__main__':
             candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
             best_group, prediction = predict_cell(candidates, i, logit_model,
                                                   lef_parser, std_cell_info)
+            # print(best_group)
+            # print(closest_via_pair_y(best_group))
+            # print()
             # recover the cell information
             macro_name = macro_from_labels[prediction]
             macro_info = macro_dict[macro_from_labels[prediction]]
@@ -625,12 +648,12 @@ if __name__ == '__main__':
     # count the time to generate the netlist separately
     start_time = time.time()
     # write the recovered verilog netlist
-    recover_netlist(def_parser, inputs, outputs, cells_reco)
+    # recover_netlist(def_parser, inputs, outputs, cells_reco)
     print("\n--- Generate netlist time:")
     print("--- %s seconds ---" % (time.time() - start_time))
 
     # debug = (cells_reco, vias_reco)
-    # filename = './recovered/c5315_debug' + '.pickle'
+    # filename = './recovered/debug/c5315_debug' + '.pickle'
     # try:
     #     with open(filename, 'wb') as f:
     #         pickle.dump(debug, f, pickle.HIGHEST_PROTOCOL)
