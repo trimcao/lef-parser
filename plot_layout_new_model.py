@@ -295,6 +295,7 @@ def get_candidates(first_via_idx, via_list, std_cells):
         max_vias = std_cells[i][1]
         pin_left_dist = std_cells[i][3]
         boundary = first_via_x + cell_width - pin_left_dist
+        # boundary = first_via_x + cell_width
         # possible vias contain the vias inside the boundary
         possible_vias = [first_via]
         for j in range(first_via_idx + 1, len(via_list)):
@@ -307,7 +308,10 @@ def get_candidates(first_via_idx, via_list, std_cells):
             candidates.append(-1)
         else:
             candidates.append(possible_vias)
-    return candidates
+    for each_cand in candidates:
+        if each_cand != -1:
+            return candidates
+    return -1
 
 
 def get_inputs_outputs(def_info):
@@ -454,240 +458,267 @@ def closest_via_pair_y(via_group):
 
 # Main Class
 if __name__ == '__main__':
-    start_time = time.time()
-    def_path = './libraries/layout_yujie/c432.def'
-    def_parser = DefParser(def_path)
-    def_parser.parse()
-    scale = def_parser.scale
 
-    lef_file = "./libraries/FreePDK45/gscl45nm.lef"
-    lef_parser = LefParser(lef_file)
-    lef_parser.parse()
-    macro_dict = lef_parser.macro_dict
+     path = './libraries/layout_yujie/'
+     files = os.listdir(path)
+     files = ['b18_C_gscl45nm_tri_routing_layer9.def']
+     for f in files:
+        start_time = time.time()
+        # def_path = './libraries/layout_yujie/c432.def'
+        def_path = path + f
+        def_parser = DefParser(def_path)
+        def_parser.parse()
+        scale = def_parser.scale
 
-    CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
-    # print (CELL_HEIGHT)
-    print ("Process file:", def_path)
-    all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
+        lef_file = "./libraries/FreePDK45/gscl45nm.lef"
+        lef_parser = LefParser(lef_file)
+        lef_parser.parse()
+        macro_dict = lef_parser.macro_dict
 
-    # create the netlist on-the-fly, for each net, 0 = input only, 1 = input or output
-    netlist_fly = dict()
-    # build the net_via dictionary
-    nets = def_parser.nets.nets
-    # initialize the nets_via_dict
-    nets_vias_dict = {}
-    for net in nets:
-        net_name = net.name
-        nets_vias_dict[net_name] = []
-        # initialize all the nets = 1
-        netlist_fly[net_name] = 1
-    # add vias to nets_dict
-    for each_via in all_via1:
-        net = each_via[2]
-        nets_vias_dict[net].append(each_via)
+        CELL_HEIGHT = int(float(scale) * lef_parser.cell_height)
+        # print (CELL_HEIGHT)
+        print ("Process file:", def_path)
+        all_via1 = get_all_vias(def_parser, via_type="M2_M1_via")
 
-    # sort the vias by row
-    via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
+        # create the netlist on-the-fly, for each net, 0 = input only, 1 = input or output
+        netlist_fly = dict()
+        # build the net_via dictionary
+        nets = def_parser.nets.nets
+        # initialize the nets_via_dict
+        nets_vias_dict = {}
+        for net in nets:
+            net_name = net.name
+            nets_vias_dict[net_name] = []
+            # initialize all the nets = 1
+            netlist_fly[net_name] = 1
+        # add vias to nets_dict
+        for each_via in all_via1:
+            net = each_via[2]
+            nets_vias_dict[net].append(each_via)
 
-    # add inputs and outputs from the design to via info
-    inputs, outputs = get_inputs_outputs(def_parser)
-    for each_in in inputs:
-        # print(each_in)
-        netlist_fly[each_in] = 0
-        for each_via in nets_vias_dict[each_in]:
-            each_via[3] = 0
-    for each_out in outputs:
-        netlist_fly[each_out] = 2
-        for each_via in nets_vias_dict[each_out]:
-            each_via[3] = 1
+        # sort the vias by row
+        via1_sorted = sort_vias_by_row(def_parser.diearea[1], CELL_HEIGHT, all_via1)
 
-    MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
+        # add inputs and outputs from the design to via info
+        inputs, outputs = get_inputs_outputs(def_parser)
+        for each_in in inputs:
+            # print(each_in)
+            netlist_fly[each_in] = 0
+            for each_via in nets_vias_dict[each_in]:
+                each_via[3] = 0
+        for each_out in outputs:
+            netlist_fly[each_out] = 2
+            for each_via in nets_vias_dict[each_out]:
+                each_via[3] = 1
 
-    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
-    num_rows = len(components)
+        MAX_DISTANCE = 2280 # OR2 cell width, can be changed later
 
-    ###############
-    # DO PREDICTION
-    # predict_row()
-    # We can load the trained model
-    pickle_filename = "./trained_models/logit_model_111816.pickle"
-    try:
-        with open(pickle_filename, 'rb') as f:
-            logit_model = pickle.load(f)
-    except Exception as e:
-        print('Unable to read data from', pickle_filename, ':', e)
+        components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                       def_parser.components.comps)
+        num_rows = len(components)
 
-    labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
-              5: 'or2'}
-    macro_from_labels = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
-                         4: 'NOR2X1', 5: 'OR2X1'}
+        ###############
+        # DO PREDICTION
+        # predict_row()
+        # We can load the trained model
+        pickle_filename = "./trained_models/logit_model_111816.pickle"
+        try:
+            with open(pickle_filename, 'rb') as f:
+                logit_model = pickle.load(f)
+        except Exception as e:
+            print('Unable to read data from', pickle_filename, ':', e)
 
-    cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
-                   'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
+        labels = {0: 'and2', 1: 'invx1', 2: 'invx8', 3: 'nand2', 4: 'nor2',
+                  5: 'or2'}
+        macro_from_labels = {0: 'AND2X1', 1: 'INVX1', 2: 'INVX8', 3: 'NAND2X1',
+                             4: 'NOR2X1', 5: 'OR2X1'}
 
-    ##############
-    # List of standard cells
-    std_cell_info = {}
-    # info includes (min num vias, max num vias, width,
-    #  distance from left boundary to first pin)
-    # I wonder if max num vias should be used, actually I don't know what is the
-    # maximum number of vias, but I guess +1 is fine.
-    # 0 is and2, 1 is invx1, etc.
-    std_cell_info[0] = (3, 4, 2280, 295)
-    std_cell_info[1] = (2, 3, 1140, 315)
-    std_cell_info[2] = (2, 3, 2660, 695)
-    std_cell_info[3] = (3, 4, 1520, 90)
-    std_cell_info[4] = (3, 4, 1520, 315)
-    std_cell_info[5] = (3, 4, 2280, 695)
+        cell_labels = {'AND2X1': 'and2', 'INVX1': 'invx1', 'NAND2X1': 'nand2',
+                       'NOR2X1': 'nor2', 'OR2X1': 'or2', 'INVX8': 'invx8'}
 
-    # process
-    # print the sorted components
-    components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
-                                   def_parser.components.comps)
-    correct = 0
-    total_cells = 0
-    predicts = []
-    actuals = []
-    cells_reco = [] # a list of recovered cells
-    # vias_reco = [] # a list of vias in the predicted cell, for debug purpose
-    # via_groups is only one row
-    for i in range(len(via1_sorted)):
-    # for i in range(0, 1):
-        print ('Process row', (i + 1))
-        # each via group in via_groups consist of two candidates
-        # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
-        visited_vias = [] # later, make visited_vias a set to run faster
-        cells_pred = []
-        via_idx = 0
-        while via_idx < len(via1_sorted[i]):
-            # choosing candidates
-            candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
-            best_group, prediction = predict_cell(candidates, i, logit_model,
-                                                  lef_parser, std_cell_info)
-            # recover the cell information
-            macro_name = macro_from_labels[prediction]
-            macro_info = macro_dict[macro_from_labels[prediction]]
-            num_pins = len(macro_info.info["PIN"]) - 2
-            # NOTE: we assume inputs are A, B and output is Y
-            # for each_pin in pins:
-            #     print(each_pin.name)
-            recover = []
-            input_nets = []
-            if macro_name == 'INVX1':
-                output_net = best_group[-1][2]
-                input_nets.append(best_group[0][2])
-            elif macro_name == 'INVX8':
-                output_net = False
-                for each_via in best_group:
-                    net_name = each_via[2]
-                    if netlist_fly[net_name] == 2:
-                        output_net = net_name
-                        break
-                for each_via in best_group:
-                    net_name = each_via[2]
-                    if net_name != output_net:
-                        input_nets.append(net_name)
-                        break
-                # second approach
-                if output_net == False:
+        ##############
+        # List of standard cells
+        std_cell_info = {}
+        # info includes (min num vias, max num vias, width,
+        #  distance from left boundary to first pin)
+        # also need distance from right most pin to right boundary
+        # I wonder if max num vias should be used, actually I don't know what is the
+        # maximum number of vias, but I guess +1 is fine.
+        # 0 is and2, 1 is invx1, etc.
+        std_cell_info[0] = (3, 4, 2280, 295 + 200)
+        std_cell_info[1] = (2, 3, 1140, 315 + 245)
+        std_cell_info[2] = (2, 3, 2660, 695 + 500)
+        std_cell_info[3] = (3, 4, 1520, 90 + 200)
+        std_cell_info[4] = (3, 4, 1520, 315 + 200)
+        std_cell_info[5] = (3, 4, 2280, 695 + 150)
+
+        # process
+        # print the sorted components
+        components = sorted_components(def_parser.diearea[1], CELL_HEIGHT,
+                                       def_parser.components.comps)
+        correct = 0
+        total_cells = 0
+        predicts = []
+        actuals = []
+        cells_reco = [] # a list of recovered cells
+        # vias_reco = [] # a list of vias in the predicted cell, for debug purpose
+        # via_groups is only one row
+        # for i in range(len(via1_sorted)):
+        for i in range(0, 1):
+            print ('Process row', (i + 1))
+            # each via group in via_groups consist of two candidates
+            # via_groups = group_via(via1_sorted[i], 3, MAX_DISTANCE)
+            visited_vias = [] # later, make visited_vias a set to run faster
+            cells_pred = []
+            via_idx = 0
+            while via_idx < len(via1_sorted[i]):
+                # choosing candidates
+                candidates = get_candidates(via_idx, via1_sorted[i], std_cell_info)
+                print(via_idx)
+                print(via1_sorted[i][via_idx])
+                print(candidates)
+                if candidates == -1:
+                    print('Something wrong!')
+                    via_idx += 1
+                else:
+                    # corner case: no possible candidates
+                    best_group, prediction = predict_cell(candidates, i, logit_model,
+                                                          lef_parser, std_cell_info)
+                    # recover the cell information
+                    macro_name = macro_from_labels[prediction]
+                    macro_info = macro_dict[macro_from_labels[prediction]]
+                    num_pins = len(macro_info.info["PIN"]) - 2
+                    # NOTE: we assume inputs are A, B and output is Y
+                    # for each_pin in pins:
+                    #     print(each_pin.name)
+                    recover = []
                     input_nets = []
-                    middle_y = CELL_HEIGHT * i + CELL_HEIGHT/2
-                    min_dist = float('inf')
-                    min_via = None
+                    if macro_name == 'INVX1':
+                        output_net = False
+                        for each_via in best_group:
+                            net_name = each_via[2]
+                            if netlist_fly[net_name] == 2:
+                                output_net = net_name
+                                break
+                        for each_via in best_group:
+                            net_name = each_via[2]
+                            if net_name != output_net:
+                                input_nets.append(net_name)
+                                break
+                        if not output_net:
+                            output_net = best_group[-1][2]
+                            input_nets.append(best_group[0][2])
+                    elif macro_name == 'INVX8':
+                        output_net = False
+                        for each_via in best_group:
+                            net_name = each_via[2]
+                            if netlist_fly[net_name] == 2:
+                                output_net = net_name
+                                break
+                        for each_via in best_group:
+                            net_name = each_via[2]
+                            if net_name != output_net:
+                                input_nets.append(net_name)
+                                break
+                        # second approach
+                        if output_net == False:
+                            input_nets = []
+                            middle_y = CELL_HEIGHT * i + CELL_HEIGHT/2
+                            min_dist = float('inf')
+                            min_via = None
+                            for each_via in best_group:
+                                y_dist = abs(each_via[0][1] - middle_y)
+                                if y_dist < min_dist:
+                                    min_via = each_via
+                            input_nets.append(min_via[2])
+                            for each_via in best_group:
+                                net_name = each_via[2]
+                                if net_name != input_nets[0]:
+                                    output_net = net_name
+                                    break
+                    else:
+                        input_vias = closest_via_pair_y(best_group)
+                        for each_via in input_vias:
+                            input_nets.append(each_via[2])
+                        for each_via in best_group:
+                            if each_via not in input_vias:
+                                output_net = each_via[2]
+                                netlist_fly[each_via[2]] = 0
+                                break
+
+                    # for j in range(len(best_group) - 1, -1, -1):
+                    #     net_name = best_group[j][2]
+                    #     if netlist_fly[net_name] == 1:
+                    #         output_net = net_name
+                    #         netlist_fly[net_name] = 0
+                    #         break
+                    # for j in range(len(best_group)):
+                    #     net_name = best_group[j][2]
+                    #     if net_name != output_net and len(input_nets) + 1 < num_pins:
+                    #         input_nets.append(net_name)
+
+                    # corner case: same nets for some or all vias in the group
+                    # in this case, actually we can ignore the result
+                    # num_inputs = len(input_nets)
+                    # for i in range(num_inputs, num_pins - 1):
+                    #     input_nets.append(best_group[i][2])
+
+                    # NOTE: the following lines only work for 2-pin and 3-pin cell
+                    if len(input_nets) + 1 == num_pins:
+                        recover.append(macro_name)
+                        recover.append(input_nets)
+                        recover.append(output_net)
+                        cells_reco.append(recover)
+                    # vias_reco.append((best_group, macro_from_labels[prediction]))
+
+                    via_idx += len(best_group)
+                    # print (best_group)
+                    # print (labels[prediction])
+                    cells_pred.append(labels[prediction])
                     for each_via in best_group:
-                        y_dist = abs(each_via[0][1] - middle_y)
-                        if y_dist < min_dist:
-                            min_via = each_via
-                    input_nets.append(min_via[2])
-                    for each_via in best_group:
-                        net_name = each_via[2]
-                        if net_name != input_nets[0]:
-                            output_net = net_name
-                            break
-            else:
-                input_vias = closest_via_pair_y(best_group)
-                for each_via in input_vias:
-                    input_nets.append(each_via[2])
-                for each_via in best_group:
-                    if each_via not in input_vias:
-                        output_net = each_via[2]
-                        netlist_fly[each_via[2]] = 0
-                        break
+                        visited_vias.append(each_via)
 
-            # for j in range(len(best_group) - 1, -1, -1):
-            #     net_name = best_group[j][2]
-            #     if netlist_fly[net_name] == 1:
-            #         output_net = net_name
-            #         netlist_fly[net_name] = 0
-            #         break
-            # for j in range(len(best_group)):
-            #     net_name = best_group[j][2]
-            #     if net_name != output_net and len(input_nets) + 1 < num_pins:
-            #         input_nets.append(net_name)
+            print (cells_pred)
+            print (len(cells_pred))
 
-            # corner case: same nets for some or all vias in the group
-            # in this case, actually we can ignore the result
-            # num_inputs = len(input_nets)
-            # for i in range(num_inputs, num_pins - 1):
-            #     input_nets.append(best_group[i][2])
+            actual_comp = []
+            actual_macro = []
+            for each_comp in components[i]:
+                actual_comp.append(cell_labels[each_comp.macro])
+                actual_macro.append(each_comp.macro)
+            print (actual_comp)
+            print (len(actual_comp))
 
-            # NOTE: the following lines only work for 2-pin and 3-pin cell
-            if len(input_nets) + 1 == num_pins:
-                recover.append(macro_name)
-                recover.append(input_nets)
-                recover.append(output_net)
-                cells_reco.append(recover)
-            # vias_reco.append((best_group, macro_from_labels[prediction]))
+            num_correct, num_cells = predict_score(cells_pred, actual_comp)
+            correct += num_correct
+            total_cells += num_cells
+            predicts.append(cells_pred)
+            actuals.append(actual_comp)
+            print ()
 
-            via_idx += len(best_group)
-            # print (best_group)
-            # print (labels[prediction])
-            cells_pred.append(labels[prediction])
-            for each_via in best_group:
-                visited_vias.append(each_via)
+        print ("\nTotal number of cells: ", total_cells)
+        print ("Number of correct cells predicted: ", correct)
+        print ("Accuracy rate (%): ", correct / total_cells * 100)
+        # print the execution time
+        print("\n--- Execution time:")
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print("\n")
+        # remove images used
+        shutil.rmtree("./images")
+        if not os.path.exists("./images"):
+            os.makedirs("./images")
 
-        print (cells_pred)
-        print (len(cells_pred))
+        # count the time to generate the netlist separately
+        start_time = time.time()
+        # write the recovered verilog netlist
+        recover_netlist(def_parser, inputs, outputs, cells_reco)
+        print("\n--- Generate netlist time:")
+        print("--- %s seconds ---" % (time.time() - start_time))
 
-        actual_comp = []
-        actual_macro = []
-        for each_comp in components[i]:
-            actual_comp.append(cell_labels[each_comp.macro])
-            actual_macro.append(each_comp.macro)
-        print (actual_comp)
-        print (len(actual_comp))
-
-        num_correct, num_cells = predict_score(cells_pred, actual_comp)
-        correct += num_correct
-        total_cells += num_cells
-        predicts.append(cells_pred)
-        actuals.append(actual_comp)
-        print ()
-
-    print ("\nTotal number of cells: ", total_cells)
-    print ("Number of correct cells predicted: ", correct)
-    print ("Accuracy rate (%): ", correct / total_cells * 100)
-    # print the execution time
-    print("\n--- Execution time:")
-    print("--- %s seconds ---" % (time.time() - start_time))
-    print("\n")
-    # remove images used
-    shutil.rmtree("./images")
-    if not os.path.exists("./images"):
-        os.makedirs("./images")
-
-    # count the time to generate the netlist separately
-    start_time = time.time()
-    # write the recovered verilog netlist
-    recover_netlist(def_parser, inputs, outputs, cells_reco)
-    print("\n--- Generate netlist time:")
-    print("--- %s seconds ---" % (time.time() - start_time))
-
-    # debug = (cells_reco, vias_reco)
-    # filename = './recovered/debug/c5315_debug' + '.pickle'
-    # try:
-    #     with open(filename, 'wb') as f:
-    #         pickle.dump(debug, f, pickle.HIGHEST_PROTOCOL)
-    # except Exception as e:
-    #     print('Unable to save data to', filename, ':', e)
+        # debug = (cells_reco, vias_reco)
+        # filename = './recovered/debug/c5315_debug' + '.pickle'
+        # try:
+        #     with open(filename, 'wb') as f:
+        #         pickle.dump(debug, f, pickle.HIGHEST_PROTOCOL)
+        # except Exception as e:
+        #     print('Unable to save data to', filename, ':', e)
