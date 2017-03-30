@@ -45,6 +45,15 @@ class Pins:
                 current_pin.placed = [int(info[2]), int(info[3])]
                 current_pin.orient = info[5]
 
+    def __len__(self):
+        return len(self.pins)
+
+    def __iter__(self):
+        return self.pins.__iter__()
+
+    def __getitem__(self, pin_name):
+        return self.get_pin(pin_name)
+
     def get_last_pin(self):
         return self.pins[-1]
 
@@ -157,6 +166,15 @@ class Components:
                 current_comp.placed = [int(info[2]), int(info[3])]
                 current_comp.orient = info[5]
 
+    def __len__(self):
+        return len(self.comps)
+
+    def __getitem__(self, comp_name):
+        return self.get_comp(comp_name)
+
+    def __iter__(self):
+        return self.comps.__iter__()
+
     def get_last_comp(self):
         return self.comps[-1]
 
@@ -258,6 +276,12 @@ class Nets:
                         new_routed.end_via_loc = new_routed.points[-1]
                 # add new_routed to the current_net
                 current_net.routed.append(new_routed)
+
+    def __iter__(self):
+        return self.nets.__iter__()
+
+    def __len__(self):
+        return len(self.nets)
 
     def get_last_net(self):
         return self.nets[-1]
